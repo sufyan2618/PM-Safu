@@ -28,7 +28,7 @@ export function SettingsNav() {
               )
             }
           >
-            {({ isActive }) => (
+            {({ isActive }: { isActive: boolean }) => (
               <>
                 {tab.label}
                 {isActive && (

@@ -40,7 +40,7 @@ export function InvoiceLineItemsEditor({ control, register, error }: InvoiceLine
                   <input
                     type="number"
                     step="1"
-                    {...register(`lineItems.${index}.quantity`)}
+                    {...register(`lineItems.${index}.quantity`, { valueAsNumber: true })}
                     className="w-full rounded-md bg-transparent px-2 py-1.5 text-right font-data text-body-sm text-ink-900 focus:bg-sunken focus:outline-none"
                   />
                 </td>
@@ -48,7 +48,7 @@ export function InvoiceLineItemsEditor({ control, register, error }: InvoiceLine
                   <input
                     type="number"
                     step="0.01"
-                    {...register(`lineItems.${index}.unitPrice`)}
+                    {...register(`lineItems.${index}.unitPrice`, { valueAsNumber: true })}
                     className="w-full rounded-md bg-transparent px-2 py-1.5 text-right font-data text-body-sm text-ink-900 focus:bg-sunken focus:outline-none"
                   />
                 </td>
@@ -56,7 +56,7 @@ export function InvoiceLineItemsEditor({ control, register, error }: InvoiceLine
                   <input
                     type="number"
                     step="0.5"
-                    {...register(`lineItems.${index}.taxRate`)}
+                    {...register(`lineItems.${index}.taxRate`, { valueAsNumber: true })}
                     className="w-full rounded-md bg-transparent px-2 py-1.5 text-right font-data text-body-sm text-ink-900 focus:bg-sunken focus:outline-none"
                   />
                 </td>

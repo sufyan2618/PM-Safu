@@ -49,9 +49,9 @@ export type ClientFormValues = z.infer<typeof clientSchema>;
 
 export const lineItemSchema = z.object({
   description: z.string().min(1, 'Description is required'),
-  quantity: z.coerce.number().min(0.01, 'Qty must be greater than 0'),
-  unitPrice: z.coerce.number().min(0, 'Price must be 0 or more'),
-  taxRate: z.coerce.number().min(0).max(100).optional(),
+  quantity: z.number({ message: 'Qty is required' }).min(0.01, 'Qty must be greater than 0'),
+  unitPrice: z.number({ message: 'Price is required' }).min(0, 'Price must be 0 or more'),
+  taxRate: z.number().min(0).max(100).optional(),
 });
 
 export const invoiceSchema = z.object({

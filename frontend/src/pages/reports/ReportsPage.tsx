@@ -80,7 +80,9 @@ export function ReportsPage() {
                 <Tooltip />
                 <Legend
                   iconType="circle"
-                  formatter={(value) => <span className="text-caption text-ink-600">{value}</span>}
+                  formatter={(value: string) => (
+                    <span className="text-caption text-ink-600">{value}</span>
+                  )}
                 />
               </PieChart>
             </ResponsiveContainer>

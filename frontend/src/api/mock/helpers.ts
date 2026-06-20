@@ -9,7 +9,7 @@ interface PaginateOptions<T> {
 }
 
 /** Apply client-side search, sort and pagination to a mock collection. */
-export function paginate<T extends Record<string, unknown>>(
+export function paginate<T>(
   items: T[],
   params: QueryParams = {},
   { searchFields = [] }: PaginateOptions<T> = {},
@@ -20,14 +20,18 @@ export function paginate<T extends Record<string, unknown>>(
   if (search && searchFields.length) {
     const q = search.toLowerCase();
     result = result.filter((item) =>
-      searchFields.some((field) => String(item[field] ?? '').toLowerCase().includes(q)),
+      searchFields.some((field) =>
+        String((item as Record<string, unknown>)[field as string] ?? '')
+          .toLowerCase()
+          .includes(q),
+      ),
     );
   }
 
   if (sortBy) {
     result.sort((a, b) => {
-      const av = a[sortBy];
-      const bv = b[sortBy];
+      const av = (a as Record<string, unknown>)[sortBy];
+      const bv = (b as Record<string, unknown>)[sortBy];
       if (av === bv) return 0;
       const cmp = (av as number | string) > (bv as number | string) ? 1 : -1;
       return sortOrder === 'asc' ? cmp : -cmp;

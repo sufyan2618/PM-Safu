@@ -27,7 +27,7 @@ export function SidebarItem({ label, icon: Icon, path, collapsed, onNavigate }: 
         )
       }
     >
-      {({ isActive }) => (
+      {({ isActive }: { isActive: boolean }) => (
         <>
           {isActive && (
             <span className="absolute inset-y-1.5 left-0 w-0.5 rounded-full bg-accent-600" />
