@@ -8,6 +8,8 @@ export const ENDPOINTS = {
     forgotPassword: '/auth/forgot-password',
     resetPassword: '/auth/reset-password',
     changePassword: '/auth/change-password',
+    verifyEmail: '/auth/verify-email',
+    resendVerification: '/auth/resend-verification',
   },
   dashboard: {
     overview: '/dashboard/overview',
@@ -15,6 +17,8 @@ export const ENDPOINTS = {
     statusBreakdown: '/dashboard/invoice-status-breakdown',
     payrollTrend: '/dashboard/payroll-trend',
     outstandingClients: '/dashboard/outstanding-clients',
+    financialSummary: '/dashboard/financial-summary',
+    reportExport: '/dashboard/report/export',
   },
   invoices: {
     list: '/invoices',

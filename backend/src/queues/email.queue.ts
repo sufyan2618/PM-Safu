@@ -15,6 +15,13 @@ export type EmailJobData =
     }
   | { job: typeof EMAIL_JOBS.PASSWORD_RESET; to: string; name: string; token: string; email: string }
   | {
+      job: typeof EMAIL_JOBS.EMAIL_VERIFICATION;
+      to: string;
+      name: string;
+      token: string;
+      email: string;
+    }
+  | {
       job: typeof EMAIL_JOBS.INVOICE_TO_CLIENT;
       to: string;
       clientName: string;

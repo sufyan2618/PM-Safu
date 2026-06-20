@@ -93,6 +93,18 @@ export function passwordResetTemplate(name: string, token: string, email: string
   );
 }
 
+export function emailVerificationTemplate(name: string, token: string, email: string): string {
+  const verifyUrl = `${env.CLIENT_BASE_URL}/verify-email?token=${token}&email=${encodeURIComponent(email)}`;
+  return layout(
+    "Verify your email",
+    `<h2 style="margin-top:0;">Confirm your email address</h2>
+     <p>Hi ${name},</p>
+     <p>Thanks for registering. Please confirm your email address to activate your account. This link expires in 24 hours.</p>
+     ${button(verifyUrl, "Verify email")}
+     <p style="color:#6b7280;font-size:13px;margin-top:16px;">If you didn't create this account, you can safely ignore this email.</p>`,
+  );
+}
+
 export function invoiceToClientTemplate(input: {
   clientName: string;
   companyName: string;

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -54,6 +54,14 @@ export function InvoiceCreatePage() {
   const values = useWatch({ control }) as InvoiceFormValues;
   const selectedClient = clients.data?.items.find((c) => c.id === values.clientId);
   const selectedTemplate = templates.data?.find((t) => t.id === values.templateId) ?? null;
+
+  // Pre-select the company's default template so the preview matches what will be saved.
+  useEffect(() => {
+    if (!values.templateId && templates.data && templates.data.length > 0) {
+      const def = templates.data.find((t) => t.isDefault) ?? templates.data[0];
+      setValue('templateId', def.id);
+    }
+  }, [templates.data, values.templateId, setValue]);
 
   async function onSubmit(formValues: InvoiceFormValues) {
     try {

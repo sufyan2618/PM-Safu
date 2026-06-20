@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Mail, Pencil, Phone, UserX } from 'lucide-react';
+import { Mail, Pencil, Phone, UserPlus, UserX } from 'lucide-react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardHeader } from '@/components/ui/Card';
 import { Avatar } from '@/components/ui/Avatar';
@@ -24,6 +24,8 @@ import {
   useEmployeeSlips,
   useUpdateEmployee,
 } from '@/hooks/queries/useEmployees';
+import { useCreateUser } from '@/hooks/queries/useUsers';
+import { useAuthStore } from '@/store/authStore';
 import { useToast } from '@/hooks/useToast';
 import { formatCurrency } from '@/utils/formatCurrency';
 import { formatDate, formatPeriod } from '@/utils/formatDate';
@@ -48,6 +50,9 @@ export function EmployeeDetailPage() {
   const departments = useDepartments();
   const updateEmployee = useUpdateEmployee(id ?? '');
   const deleteEmployee = useDeleteEmployee();
+  const createUser = useCreateUser();
+  const currentRole = useAuthStore((s) => s.user?.role);
+  const canInvite = currentRole === 'company_admin';
 
   const {
     register,
@@ -107,6 +112,18 @@ export function EmployeeDetailPage() {
     }
   }
 
+  async function handleInvite() {
+    if (!employee) return;
+    try {
+      await createUser.mutateAsync({ name: employee.name, email: employee.email, role: 'staff' });
+      toast.success('Portal invite sent — login details emailed to the employee');
+    } catch (err) {
+      const message = (err as { response?: { data?: { message?: string } } })?.response?.data
+        ?.message;
+      toast.error(message ?? 'Could not send portal invite');
+    }
+  }
+
   const slipColumns: Column<SalarySlip>[] = [
     { key: 'period', header: 'Period', isMono: true, render: (r) => formatPeriod(r.period) },
     {
@@ -133,6 +150,16 @@ export function EmployeeDetailPage() {
         breadcrumbs={[{ label: 'Employees', to: ROUTES.EMPLOYEES }, { label: employee.name }]}
         actions={
           <div className="flex items-center gap-2">
+            {canInvite && employee.status !== 'terminated' && (
+              <Button
+                variant="outline"
+                leftIcon={<UserPlus size={16} />}
+                isLoading={createUser.isPending}
+                onClick={handleInvite}
+              >
+                Invite to portal
+              </Button>
+            )}
             <Button variant="outline" leftIcon={<Pencil size={16} />} onClick={() => setEditOpen(true)}>
               Edit
             </Button>

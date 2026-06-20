@@ -23,3 +23,26 @@ export function useUpdateUser(id: string) {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['users'] }),
   });
 }
+
+/** Update a user identified at call time (for row actions in a list). */
+export function useUpdateUserById() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      payload,
+    }: {
+      id: string;
+      payload: { name?: string; role?: Role; isActive?: boolean };
+    }) => userService.update(id, payload),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['users'] }),
+  });
+}
+
+export function useDeleteUser() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => userService.remove(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['users'] }),
+  });
+}

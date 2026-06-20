@@ -91,6 +91,7 @@ export const EMAIL_JOBS = {
   PAYMENT_REMINDER: "sendPaymentReminder",
   USER_INVITE: "sendUserInvite",
   PASSWORD_RESET: "sendPasswordReset",
+  EMAIL_VERIFICATION: "sendEmailVerification",
 } as const;
 
 export const PDF_JOBS = {

@@ -16,6 +16,9 @@ export interface IUser extends Document {
   lastLoginAt?: Date;
   passwordResetTokenHash?: string;
   passwordResetExpiresAt?: Date;
+  emailVerified: boolean;
+  emailVerificationTokenHash?: string;
+  emailVerificationExpiresAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -34,6 +37,11 @@ const userSchema = new Schema<IUser>(
     lastLoginAt: { type: Date },
     passwordResetTokenHash: { type: String, select: false },
     passwordResetExpiresAt: { type: Date, select: false },
+    // Defaults to verified so invited users and existing accounts are unaffected;
+    // self-registered company admins are explicitly set to false at sign-up.
+    emailVerified: { type: Boolean, default: true },
+    emailVerificationTokenHash: { type: String, select: false },
+    emailVerificationExpiresAt: { type: Date, select: false },
   },
   { timestamps: true },
 );

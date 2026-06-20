@@ -258,6 +258,33 @@ export interface ApiDashboardOverview {
   activeEmployees: number;
   payrollExpenseThisMonth: number;
   monthStart: string;
+  revenueThisMonth: number;
+  revenueLastMonth: number;
+  revenueDelta: number;
+  payrollExpenseLastMonth: number;
+  payrollDelta: number;
+  overdueCount: number;
+  departmentCount: number;
+  newHiresThisMonth: number;
+}
+
+export interface ApiInvoiceStatusBreakdown {
+  _id: InvoiceStatus;
+  count: number;
+  totalAmount: number;
+  amountDue: number;
+}
+
+export interface ApiFinancialSummary {
+  from: string;
+  to: string;
+  revenue: number;
+  payrollExpense: number;
+  net: number;
+  outstanding: number;
+  invoiceStatusBreakdown: ApiInvoiceStatusBreakdown[];
+  revenueSeries: ApiTrendPoint[];
+  payroll: { net: number; gross: number; deductions: number };
 }
 
 export interface ApiTrendPoint {

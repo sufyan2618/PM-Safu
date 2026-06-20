@@ -9,7 +9,9 @@ import type {
   ApiDashboardOverview,
   ApiDepartment,
   ApiEmployee,
+  ApiFinancialSummary,
   ApiInvoice,
+  ApiInvoiceStatusBreakdown,
   ApiInvoiceTemplate,
   ApiOutstandingClient,
   ApiPayroll,
@@ -28,7 +30,9 @@ import type {
   DashboardStats,
   Department,
   Employee,
+  FinancialSummary,
   Invoice,
+  InvoiceStatusBreakdown,
   InvoiceTemplate,
   OutstandingClient,
   Paginated,
@@ -398,8 +402,43 @@ export function mapOverview(dto: ApiDashboardOverview): DashboardStats {
       paid: counts.paid ?? 0,
       overdue: counts.overdue ?? 0,
     },
+    totalInvoices: dto.totalInvoices ?? 0,
     payrollExpenseThisMonth: dto.payrollExpenseThisMonth,
     activeEmployees: dto.activeEmployees,
+    revenueDelta: dto.revenueDelta ?? 0,
+    payrollDelta: dto.payrollDelta ?? 0,
+    overdueCount: dto.overdueCount ?? counts.overdue ?? 0,
+    departmentCount: dto.departmentCount ?? 0,
+    newHiresThisMonth: dto.newHiresThisMonth ?? 0,
+  };
+}
+
+export function mapInvoiceStatusBreakdown(
+  dto: ApiInvoiceStatusBreakdown,
+): InvoiceStatusBreakdown {
+  return {
+    status: dto._id,
+    count: dto.count,
+    amount: dto.totalAmount ?? 0,
+    amountDue: dto.amountDue ?? 0,
+  };
+}
+
+export function mapFinancialSummary(dto: ApiFinancialSummary): FinancialSummary {
+  return {
+    from: dto.from,
+    to: dto.to,
+    revenue: dto.revenue ?? 0,
+    payrollExpense: dto.payrollExpense ?? 0,
+    net: dto.net ?? 0,
+    outstanding: dto.outstanding ?? 0,
+    invoiceStatusBreakdown: (dto.invoiceStatusBreakdown ?? []).map(mapInvoiceStatusBreakdown),
+    revenueSeries: (dto.revenueSeries ?? []).map((p) => ({
+      month: MONTH_LABELS[(p._id.month - 1 + 12) % 12],
+      revenue: p.revenue ?? 0,
+      expense: 0,
+    })),
+    payroll: dto.payroll ?? { net: 0, gross: 0, deductions: 0 },
   };
 }
 

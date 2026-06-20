@@ -53,6 +53,8 @@ export const registerCompany = asyncHandler(async (req: Request, res: Response) 
     status: CompanyStatus.PENDING,
   });
 
+  const verificationToken = generateToken(24);
+
   try {
     await UserModel.create({
       companyId: company._id,
@@ -60,6 +62,9 @@ export const registerCompany = asyncHandler(async (req: Request, res: Response) 
       email: registrationEmail,
       passwordHash: await hashPassword(password),
       role: CompanyRole.COMPANY_ADMIN,
+      emailVerified: false,
+      emailVerificationTokenHash: hashToken(verificationToken),
+      emailVerificationExpiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
     });
   } catch (error) {
     // Roll back the company if the admin user couldn't be created.
@@ -68,6 +73,13 @@ export const registerCompany = asyncHandler(async (req: Request, res: Response) 
   }
 
   await enqueueEmail({ job: EMAIL_JOBS.COMPANY_RECEIVED, to: registrationEmail, companyName });
+  await enqueueEmail({
+    job: EMAIL_JOBS.EMAIL_VERIFICATION,
+    to: registrationEmail,
+    name: adminName,
+    token: verificationToken,
+    email: registrationEmail,
+  });
 
   return sendCreated(res, {
     message: "Registration submitted. Your company is pending approval.",
@@ -89,6 +101,11 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
   }
   if (!user.isActive) {
     throw ApiError.forbidden("Your account has been deactivated");
+  }
+  if (!user.emailVerified) {
+    throw new ApiError(403, "Please verify your email address before logging in.", [
+      { field: "email", message: "EMAIL_NOT_VERIFIED" },
+    ]);
   }
 
   const company = await CompanyModel.findById(user.companyId);
@@ -301,6 +318,60 @@ export const changePassword = asyncHandler(async (req: Request, res: Response) =
   await user.save();
 
   return sendSuccess(res, { message: "Password changed successfully" });
+});
+
+export const verifyEmail = asyncHandler(async (req: Request, res: Response) => {
+  const { token, email } = req.body;
+
+  const user = await UserModel.findOne({ email }).select(
+    "+emailVerificationTokenHash +emailVerificationExpiresAt",
+  );
+  if (!user) {
+    throw ApiError.badRequest("Invalid or expired verification link");
+  }
+  if (user.emailVerified) {
+    return sendSuccess(res, { message: "Your email is already verified. You can log in." });
+  }
+  if (
+    !user.emailVerificationTokenHash ||
+    user.emailVerificationTokenHash !== hashToken(token) ||
+    !user.emailVerificationExpiresAt ||
+    user.emailVerificationExpiresAt.getTime() < Date.now()
+  ) {
+    throw ApiError.badRequest("Invalid or expired verification link");
+  }
+
+  user.emailVerified = true;
+  user.emailVerificationTokenHash = undefined;
+  user.emailVerificationExpiresAt = undefined;
+  await user.save();
+
+  return sendSuccess(res, { message: "Email verified successfully. You can now log in." });
+});
+
+export const resendVerification = asyncHandler(async (req: Request, res: Response) => {
+  const { email } = req.body;
+  const user = await UserModel.findOne({ email });
+
+  // Always respond success to avoid leaking which emails exist.
+  if (user && !user.emailVerified) {
+    const rawToken = generateToken(24);
+    user.emailVerificationTokenHash = hashToken(rawToken);
+    user.emailVerificationExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    await user.save();
+
+    await enqueueEmail({
+      job: EMAIL_JOBS.EMAIL_VERIFICATION,
+      to: user.email,
+      name: user.name,
+      token: rawToken,
+      email: user.email,
+    });
+  }
+
+  return sendSuccess(res, {
+    message: "If your account needs verification, a new link has been sent.",
+  });
 });
 
 async function revokeAllUserTokens(userId: string) {

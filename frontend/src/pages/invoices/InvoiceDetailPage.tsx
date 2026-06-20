@@ -21,6 +21,7 @@ export function InvoiceDetailPage() {
   const navigate = useNavigate();
   const toast = useToast();
   const { data: invoice, isLoading } = useInvoice(id);
+  const { data: templates } = useInvoiceTemplates();
   const actions = useInvoiceActions(id ?? '');
 
   const [payOpen, setPayOpen] = useState(false);
@@ -38,6 +39,11 @@ export function InvoiceDetailPage() {
       </>
     );
   }
+
+  const invoiceTemplate =
+    templates?.find((t) => t.id === invoice.templateId) ??
+    templates?.find((t) => t.isDefault) ??
+    null;
 
   const shareUrl = `${window.location.origin}${ROUTES.INVOICE_SHARE(invoice.shareToken ?? '')}`;
 
@@ -89,6 +95,8 @@ export function InvoiceDetailPage() {
             lineItems={invoice.lineItems}
             notes={invoice.notes}
             terms={invoice.terms}
+            template={invoiceTemplate}
+            currency={invoice.currency}
           />
         </div>
 

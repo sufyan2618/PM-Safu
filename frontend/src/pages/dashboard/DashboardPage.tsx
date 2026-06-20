@@ -54,30 +54,40 @@ export function DashboardPage() {
               value={formatCompactCurrency(stats.totalRevenue)}
               icon={Banknote}
               tone="accent"
-              delta={{ value: '12.4%', trend: 'up' }}
-              hint="vs. last quarter"
+              delta={{
+                value: `${Math.abs(stats.revenueDelta)}%`,
+                trend: stats.revenueDelta >= 0 ? 'up' : 'down',
+              }}
+              hint="vs. last month"
             />
             <StatTile
               label="Outstanding"
               value={formatCompactCurrency(stats.outstandingAmount)}
               icon={FileWarning}
               tone="danger"
-              delta={{ value: '3.1%', trend: 'down' }}
-              hint={`${stats.invoiceCount.overdue} overdue`}
+              hint={`${stats.overdueCount} overdue`}
             />
             <StatTile
               label="Payroll this month"
               value={formatCompactCurrency(stats.payrollExpenseThisMonth)}
               icon={Wallet}
               tone="info"
-              hint="Next run in 6 days"
+              delta={{
+                value: `${Math.abs(stats.payrollDelta)}%`,
+                trend: stats.payrollDelta >= 0 ? 'up' : 'down',
+              }}
+              hint="vs. last month"
             />
             <StatTile
               label="Active employees"
               value={String(stats.activeEmployees)}
               icon={Users}
               tone="warning"
-              hint="Across 5 departments"
+              hint={
+                stats.newHiresThisMonth > 0
+                  ? `+${stats.newHiresThisMonth} this month`
+                  : `Across ${stats.departmentCount} department${stats.departmentCount === 1 ? '' : 's'}`
+              }
             />
           </>
         )}

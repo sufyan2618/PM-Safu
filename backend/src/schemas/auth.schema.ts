@@ -29,5 +29,14 @@ export const changePasswordSchema = z.object({
   newPassword: password,
 });
 
+export const verifyEmailSchema = z.object({
+  token: z.string().min(10, "Verification token is required"),
+  email: z.string().trim().toLowerCase().email("Valid email is required"),
+});
+
+export const resendVerificationSchema = z.object({
+  email: z.string().trim().toLowerCase().email("Valid email is required"),
+});
+
 export type RegisterCompanyInput = z.infer<typeof registerCompanySchema>;
 export type LoginInput = z.infer<typeof loginSchema>;

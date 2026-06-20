@@ -9,6 +9,7 @@ import {
   Wallet,
   ReceiptText,
   BarChart3,
+  UserCircle,
 } from 'lucide-react';
 import { ROUTES } from './routes.constants';
 import type { Role } from '@/types';
@@ -26,10 +27,19 @@ export interface NavSection {
   items: NavItem[];
 }
 
+const NON_STAFF: Role[] = ['company_admin', 'hr_manager', 'accountant'];
+
 export const NAV_SECTIONS: NavSection[] = [
   {
     label: 'Overview',
-    items: [{ label: 'Dashboard', icon: LayoutGrid, path: ROUTES.DASHBOARD }],
+    items: [{ label: 'Dashboard', icon: LayoutGrid, path: ROUTES.DASHBOARD, roles: NON_STAFF }],
+  },
+  {
+    label: 'My Workspace',
+    items: [
+      { label: 'My Payslips', icon: ReceiptText, path: ROUTES.SALARY_SLIPS, roles: ['staff'] },
+      { label: 'My Profile', icon: UserCircle, path: ROUTES.SETTINGS_PROFILE, roles: ['staff'] },
+    ],
   },
   {
     label: 'Billing',
@@ -70,7 +80,7 @@ export const NAV_SECTIONS: NavSection[] = [
         path: ROUTES.PAYROLL_RUNS,
         roles: ['company_admin', 'hr_manager'],
       },
-      { label: 'Salary Slips', icon: ReceiptText, path: ROUTES.SALARY_SLIPS },
+      { label: 'Salary Slips', icon: ReceiptText, path: ROUTES.SALARY_SLIPS, roles: NON_STAFF },
     ],
   },
   {

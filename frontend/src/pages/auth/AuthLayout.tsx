@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react';
 import { useLottie } from 'lottie-react';
-import { Brand } from '@/components/layout/Brand';
 import loginAnimation from '@/animations/Login.json';
 
 interface AuthLayoutProps {
@@ -23,17 +22,29 @@ export function AuthLayout({ title, subtitle, children, footer }: AuthLayoutProp
   return (
     <div className="grid h-dvh overflow-hidden lg:grid-cols-2">
       {/* Form column */}
-      <div className="flex flex-col overflow-y-auto px-6 py-10 sm:px-12">
-        <Brand />
-        <div className="flex flex-1 items-center justify-center py-10">
-          <div className="w-full max-w-sm">
-            <h1 className="text-display-lg text-ink-900">{title}</h1>
-            <p className="mt-2 text-body text-ink-600">{subtitle}</p>
-            <div className="mt-8">{children}</div>
-            {footer && <div className="mt-6 text-center text-body-sm text-ink-600">{footer}</div>}
+      <div
+        className="relative flex flex-col justify-center overflow-y-auto px-6 py-12 sm:px-12 [&::-webkit-scrollbar]:hidden"
+        style={{ scrollbarWidth: 'none' }}
+      >
+        <div className="mx-auto w-full max-w-sm">
+          <div className="mb-8 flex flex-col items-center text-center">
+            <img
+              src="/logo.webp"
+              alt="PM-Safu"
+              className="h-14 w-14 rounded-xl object-contain"
+            />
+            <span className="mt-2 text-heading font-semibold tracking-tight text-ink-900">
+              PM-Safu
+            </span>
           </div>
+          <h1 className="text-display-lg text-ink-900">{title}</h1>
+          <p className="mt-2 text-body text-ink-600">{subtitle}</p>
+          <div className="mt-8">{children}</div>
+          {footer && <div className="mt-6 text-center text-body-sm text-ink-600">{footer}</div>}
         </div>
-        <p className="text-caption text-ink-400">© {new Date().getFullYear()} PM-Safu</p>
+        <p className="absolute inset-x-0 bottom-4 text-center text-caption text-ink-400">
+          © {new Date().getFullYear()} PM-Safu
+        </p>
       </div>
 
       {/* Brand / animation panel — desktop only */}
@@ -55,7 +66,7 @@ export function AuthLayout({ title, subtitle, children, footer }: AuthLayoutProp
               Run billing and payroll with the calm of a balanced ledger.
             </h2>
             <p className="mt-3 text-body-sm text-white/70">
-              Send branded invoices, track outstanding balances, and process payroll — all from one
+              Send branded invoices, track outstanding balances, and process payroll all from one
               precise, numbers-first workspace.
             </p>
           </div>

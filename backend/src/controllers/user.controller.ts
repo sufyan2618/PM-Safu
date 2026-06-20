@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
-import { EMAIL_JOBS } from "../config/constants";
+import { CompanyRole, EMAIL_JOBS } from "../config/constants";
 import { CompanyModel } from "../models/company.model";
+import { EmployeeModel } from "../models/employee.model";
 import { UserModel } from "../models/user.model";
 import { asyncHandler } from "../utils/async-handler";
 import { ApiError } from "../utils/apiError";
@@ -51,6 +52,20 @@ export const createUser = asyncHandler(async (req: Request, res: Response) => {
     passwordHash: await hashPassword(tempPassword),
     invitedBy: req.user?.sub,
   });
+
+  // Staff are self-service portal users: link them to their employee record (by
+  // email) so salary-slip access is automatically scoped to their own data.
+  if (role === CompanyRole.STAFF) {
+    const employee = await EmployeeModel.findOne({ companyId: req.companyId, email });
+    if (employee) {
+      user.employeeId = employee._id;
+      await user.save();
+      if (!employee.userId) {
+        employee.userId = user._id;
+        await employee.save();
+      }
+    }
+  }
 
   const company = await CompanyModel.findById(req.companyId).select("companyName");
   await enqueueEmail({

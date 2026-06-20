@@ -1,7 +1,6 @@
-import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
-import { Brand } from '../Brand';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { CompanyBrand } from '../CompanyBrand';
 import { SidebarItem } from './SidebarItem';
-import { SidebarSection } from './SidebarSection';
 import { NAV_SECTIONS } from '@/constants/navigation.constants';
 import { useUiStore } from '@/store/uiStore';
 import { useAuthStore } from '@/store/authStore';
@@ -18,66 +17,62 @@ export function Sidebar({ collapsed, onNavigate, showCollapseToggle = true }: Si
   const toggleSidebar = useUiStore((s) => s.toggleSidebar);
   const role = useAuthStore((s) => s.user?.role) as Role | undefined;
 
+  const navItems = NAV_SECTIONS.flatMap((section) => section.items).filter(
+    (item) => !item.roles || (role && item.roles.includes(role)),
+  );
+
   return (
     <aside
       className={cn(
-        'flex h-full flex-col border-r border-subtle bg-surface transition-[width] duration-200',
+        'flex h-full flex-col border-r border-strong bg-surface shadow-card transition-[width] duration-200',
         collapsed ? 'w-[72px]' : 'w-[264px]',
       )}
     >
-      <div
-        className={cn(
-          'flex h-16 shrink-0 items-center border-b border-subtle px-4',
-          collapsed && 'justify-center px-0',
-        )}
-      >
-        <Brand collapsed={collapsed} />
-      </div>
-
-      <nav className="flex-1 overflow-y-auto px-3 py-2">
-        {NAV_SECTIONS.map((section) => {
-          const items = section.items.filter(
-            (item) => !item.roles || (role && item.roles.includes(role)),
-          );
-          if (items.length === 0) return null;
-          return (
-            <SidebarSection key={section.label} label={section.label} collapsed={collapsed}>
-              {items.map((item) => (
-                <SidebarItem
-                  key={item.path}
-                  label={item.label}
-                  icon={item.icon}
-                  path={item.path}
-                  collapsed={collapsed}
-                  onNavigate={onNavigate}
-                />
-              ))}
-            </SidebarSection>
-          );
-        })}
-      </nav>
-
       {showCollapseToggle && (
-        <div className="shrink-0 border-t border-subtle p-3">
+        <div
+          className={cn(
+            'flex shrink-0 px-3 pt-3',
+            collapsed ? 'justify-center' : 'justify-end',
+          )}
+        >
           <button
             type="button"
             onClick={toggleSidebar}
-            className={cn(
-              'flex w-full items-center gap-3 rounded-lg px-3 py-2 text-body-sm font-medium text-ink-600 transition-colors hover:bg-sunken hover:text-ink-900',
-              collapsed && 'justify-center px-0',
-            )}
+            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-subtle text-ink-600 transition-colors hover:bg-sunken hover:text-ink-900"
           >
             {collapsed ? (
-              <PanelLeftOpen size={18} strokeWidth={1.5} />
+              <ChevronRight size={18} strokeWidth={1.5} />
             ) : (
-              <>
-                <PanelLeftClose size={18} strokeWidth={1.5} />
-                <span>Collapse</span>
-              </>
+              <ChevronLeft size={18} strokeWidth={1.5} />
             )}
           </button>
         </div>
       )}
+
+      <div className="flex-1 overflow-y-auto px-3 pb-4">
+        <div
+          className={cn(
+            'flex items-center justify-center',
+            collapsed ? 'py-4' : 'px-1 pb-6 pt-3',
+          )}
+        >
+          <CompanyBrand collapsed={collapsed} />
+        </div>
+
+        <nav className="space-y-1">
+          {navItems.map((item) => (
+            <SidebarItem
+              key={item.path}
+              label={item.label}
+              icon={item.icon}
+              path={item.path}
+              collapsed={collapsed}
+              onNavigate={onNavigate}
+            />
+          ))}
+        </nav>
+      </div>
     </aside>
   );
 }

@@ -81,6 +81,14 @@ export const authService = {
     await axiosClient.post(ENDPOINTS.auth.changePassword, payload);
   },
 
+  async verifyEmail(payload: { token: string; email: string }): Promise<void> {
+    await axiosClient.post(ENDPOINTS.auth.verifyEmail, payload);
+  },
+
+  async resendVerification(email: string): Promise<void> {
+    await axiosClient.post(ENDPOINTS.auth.resendVerification, { email });
+  },
+
   async logout(): Promise<void> {
     await axiosClient.post(ENDPOINTS.auth.logout);
   },

@@ -7,6 +7,7 @@ import {
   companyApprovedTemplate,
   companyReceivedTemplate,
   companyRejectedTemplate,
+  emailVerificationTemplate,
   invoiceToClientTemplate,
   passwordResetTemplate,
   paymentReminderTemplate,
@@ -35,6 +36,12 @@ function buildEmail(data: EmailJobData): { subject: string; html: string; toName
       return {
         subject: "Reset your password",
         html: passwordResetTemplate(data.name, data.token, data.email),
+        toName: data.name,
+      };
+    case EMAIL_JOBS.EMAIL_VERIFICATION:
+      return {
+        subject: "Verify your email address",
+        html: emailVerificationTemplate(data.name, data.token, data.email),
         toName: data.name,
       };
     case EMAIL_JOBS.INVOICE_TO_CLIENT:

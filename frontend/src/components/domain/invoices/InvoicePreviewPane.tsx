@@ -156,8 +156,8 @@ export function InvoicePreviewPane({
     </div>
   );
 
-  const titleBlock = (align: 'left' | 'right') => (
-    <div className={align === 'right' ? 'text-right' : 'text-left'}>
+  const titleBlock = (align: 'left' | 'center' | 'right') => (
+    <div className={align === 'right' ? 'text-right' : align === 'center' ? 'text-center' : 'text-left'}>
       <p
         className="font-bold uppercase tracking-wide"
         style={{ fontSize: headingSize * 0.55, color: isBold ? accent : primary }}
@@ -251,7 +251,7 @@ export function InvoicePreviewPane({
                   {[company.address.city, company.address.country].filter(Boolean).join(', ')}
                 </p>
               )}
-              <div className="mt-1">{titleBlock('left')}</div>
+              <div className="mt-1">{titleBlock('center')}</div>
             </div>
           ) : (
             <div className="flex items-start justify-between px-7 pt-6 pb-2">

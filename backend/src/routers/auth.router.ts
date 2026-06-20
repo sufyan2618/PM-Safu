@@ -7,8 +7,10 @@ import {
   me,
   refresh,
   registerCompany,
+  resendVerification,
   resetPassword,
   superAdminLogin,
+  verifyEmail,
 } from "../controllers/auth.controller";
 import { requireAuth } from "../middlewares/auth.middleware";
 import { validate } from "../middlewares/validate.middleware";
@@ -18,7 +20,9 @@ import {
   forgotPasswordSchema,
   loginSchema,
   registerCompanySchema,
+  resendVerificationSchema,
   resetPasswordSchema,
+  verifyEmailSchema,
 } from "../schemas/auth.schema";
 
 const router = Router();
@@ -31,6 +35,13 @@ router.post("/logout", logout);
 router.get("/me", requireAuth, me);
 router.post("/forgot-password", authRateLimiter, validate({ body: forgotPasswordSchema }), forgotPassword);
 router.post("/reset-password", authRateLimiter, validate({ body: resetPasswordSchema }), resetPassword);
+router.post("/verify-email", authRateLimiter, validate({ body: verifyEmailSchema }), verifyEmail);
+router.post(
+  "/resend-verification",
+  authRateLimiter,
+  validate({ body: resendVerificationSchema }),
+  resendVerification,
+);
 router.post("/change-password", requireAuth, validate({ body: changePasswordSchema }), changePassword);
 
 export default router;

@@ -1,7 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { ProtectedRoute } from './ProtectedRoute';
-import { RoleGuard } from './RoleGuard';
+import { RoleGuard, StaffHomeRedirect } from './RoleGuard';
 import { OnboardingGuard, OnboardingRedirect } from './OnboardingGuard';
 import { AppShell } from '@/components/layout/AppShell';
 import { RouteFallback } from './RouteFallback';
@@ -121,7 +121,9 @@ export function AppRouter() {
             {/* Main app — requires a fully onboarded company */}
             <Route element={<OnboardingGuard />}>
               <Route element={<AppShell />}>
-                <Route path={ROUTES.DASHBOARD} element={<DashboardPage />} />
+                <Route element={<StaffHomeRedirect />}>
+                  <Route path={ROUTES.DASHBOARD} element={<DashboardPage />} />
+                </Route>
 
                 <Route element={<RoleGuard allow={['company_admin', 'accountant']} />}>
                   <Route path={ROUTES.INVOICES} element={<InvoiceListPage />} />
