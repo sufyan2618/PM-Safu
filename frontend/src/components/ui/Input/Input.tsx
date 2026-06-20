@@ -42,7 +42,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
       : undefined;
 
   return (
-    <div className="w-full">
+    <div className={cn('w-full', className)}>
       {label && (
         <label
           htmlFor={inputId}

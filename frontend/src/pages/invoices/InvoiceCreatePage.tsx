@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Eye, Save, Send } from 'lucide-react';
@@ -36,7 +36,6 @@ export function InvoiceCreatePage() {
     register,
     control,
     handleSubmit,
-    watch,
     setValue,
     formState: { errors, isSubmitting },
   } = useForm<InvoiceFormValues>({
@@ -52,7 +51,7 @@ export function InvoiceCreatePage() {
     },
   });
 
-  const values = watch();
+  const values = useWatch({ control }) as InvoiceFormValues;
   const selectedClient = clients.data?.items.find((c) => c.id === values.clientId);
   const selectedTemplate = templates.data?.find((t) => t.id === values.templateId) ?? null;
 

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { IdCard, Plus, Search } from 'lucide-react';
 import { PageHeader } from '@/components/layout/PageHeader';
@@ -55,12 +55,14 @@ export function EmployeeListPage() {
     handleSubmit,
     reset,
     setValue,
-    watch,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<EmployeeFormValues>({
     resolver: zodResolver(employeeSchema),
     defaultValues: { employmentType: 'full_time' },
   });
+  const departmentId = useWatch({ control, name: 'departmentId' });
+  const employmentType = useWatch({ control, name: 'employmentType' });
 
   async function onSubmit(values: EmployeeFormValues) {
     await createEmployee.mutateAsync(values);
@@ -173,7 +175,7 @@ export function EmployeeListPage() {
           </div>
           <Select
             label="Department"
-            value={watch('departmentId')}
+            value={departmentId}
             onChange={(v) => setValue('departmentId', v as string, { shouldValidate: true })}
             options={(departments.data ?? []).map((d) => ({ label: d.name, value: d.id }))}
             errorText={errors.departmentId?.message}
@@ -186,7 +188,7 @@ export function EmployeeListPage() {
           <div className="grid grid-cols-2 gap-4">
             <Select
               label="Employment type"
-              value={watch('employmentType')}
+              value={employmentType}
               onChange={(v) => setValue('employmentType', v as EmployeeFormValues['employmentType'])}
               options={[
                 { label: 'Full-time', value: 'full_time' },

@@ -1,4 +1,4 @@
-export type Role = 'admin' | 'manager' | 'accountant' | 'employee';
+export type Role = 'company_admin' | 'hr_manager' | 'accountant' | 'staff';
 
 export interface User {
   id: string;
@@ -8,5 +8,6 @@ export interface User {
   role: Role;
   companyId: string;
   isActive: boolean;
-  createdAt: string;
+  lastLoginAt?: string;
+  createdAt?: string;
 }

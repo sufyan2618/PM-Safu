@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { MoreVertical, UserPlus } from 'lucide-react';
 import { PageHeader } from '@/components/layout/PageHeader';
@@ -29,13 +29,14 @@ export function UsersAndRolesPage() {
     register,
     handleSubmit,
     reset,
-    watch,
+    control,
     setValue,
     formState: { errors, isSubmitting },
   } = useForm<UserInviteFormValues>({
     resolver: zodResolver(userInviteSchema),
     defaultValues: { role: 'accountant' },
   });
+  const role = useWatch({ control, name: 'role' });
 
   async function onSubmit(values: UserInviteFormValues) {
     await createUser.mutateAsync(values);
@@ -129,7 +130,7 @@ export function UsersAndRolesPage() {
           <Input label="Email" type="email" errorText={errors.email?.message} {...register('email')} />
           <Select
             label="Role"
-            value={watch('role')}
+            value={role}
             onChange={(v) => setValue('role', v as Role)}
             options={ROLE_OPTIONS}
           />

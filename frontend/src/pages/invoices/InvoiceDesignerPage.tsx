@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Palette } from 'lucide-react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardHeader } from '@/components/ui/Card';
@@ -17,14 +17,17 @@ const SAMPLE_ITEMS = [
   { description: 'Website development', quantity: 1, unitPrice: 5400, taxRate: 8 },
 ];
 
+const SAMPLE_ISSUE_DATE = new Date().toISOString();
+const SAMPLE_DUE_DATE = new Date(Date.now() + 14 * 86400000).toISOString();
+
 export function InvoiceDesignerPage() {
   const { data: templates, isLoading } = useInvoiceTemplates();
   const toast = useToast();
-  const [active, setActive] = useState<InvoiceTemplate | null>(null);
+  const [edited, setEdited] = useState<InvoiceTemplate | null>(null);
 
-  useEffect(() => {
-    if (templates && !active) setActive(templates.find((t) => t.isDefault) ?? templates[0]);
-  }, [templates, active]);
+  // Effective template: an explicit edit, else the company default, else the first.
+  const active = edited ?? templates?.find((t) => t.isDefault) ?? templates?.[0] ?? null;
+  const setActive = setEdited;
 
   return (
     <>
@@ -102,8 +105,8 @@ export function InvoiceDesignerPage() {
           </div>
           <InvoicePreviewPane
             invoiceNumber="INV-1042"
-            issueDate={new Date().toISOString()}
-            dueDate={new Date(Date.now() + 14 * 86400000).toISOString()}
+            issueDate={SAMPLE_ISSUE_DATE}
+            dueDate={SAMPLE_DUE_DATE}
             lineItems={SAMPLE_ITEMS}
             notes="Thank you for your business."
             template={active}

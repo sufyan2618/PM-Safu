@@ -1,4 +1,4 @@
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { SettingsNav } from './SettingsNav';
@@ -20,7 +20,7 @@ export function CompanySettingsPage() {
   const {
     register,
     handleSubmit,
-    watch,
+    control,
     setValue,
     formState: { errors, isSubmitting },
   } = useForm<CompanySettingsFormValues>({
@@ -33,8 +33,9 @@ export function CompanySettingsPage() {
       invoicePrefix: 'INV',
     },
   });
+  const currency = useWatch({ control, name: 'currency' });
 
-  function onSubmit(_values: CompanySettingsFormValues) {
+  function onSubmit() {
     toast.success('Company settings saved');
   }
 
@@ -57,7 +58,7 @@ export function CompanySettingsPage() {
               <Input label="Tax ID" {...register('taxId')} />
               <Select
                 label="Default currency"
-                value={watch('currency')}
+                value={currency}
                 onChange={(v) => setValue('currency', v as string)}
                 options={CURRENCY_OPTIONS}
                 errorText={errors.currency?.message}

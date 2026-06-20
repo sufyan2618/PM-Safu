@@ -1,4 +1,5 @@
 import type { User } from './user.types';
+import type { CompanySummary } from './company.types';
 
 export interface LoginPayload {
   email: string;
@@ -13,9 +14,9 @@ export interface RegisterPayload {
 }
 
 export interface AuthResult {
+  accessToken: string;
   user: User;
-  token: string;
-  onboardingCompleted: boolean;
+  company: CompanySummary;
 }
 
 export interface ForgotPasswordPayload {
@@ -24,5 +25,11 @@ export interface ForgotPasswordPayload {
 
 export interface ResetPasswordPayload {
   token: string;
-  password: string;
+  email: string;
+  newPassword: string;
+}
+
+export interface ChangePasswordPayload {
+  currentPassword: string;
+  newPassword: string;
 }

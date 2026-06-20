@@ -1,5 +1,6 @@
 export * from './common.types';
 export * from './user.types';
+export * from './company.types';
 export * from './auth.types';
 export * from './client.types';
 export * from './invoice.types';

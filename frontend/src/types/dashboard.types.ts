@@ -28,6 +28,7 @@ export interface PayrollTrendPoint {
 export interface OutstandingClient {
   clientId: string;
   name: string;
+  companyName?: string;
   outstanding: number;
-  invoiceCount: number;
+  totalInvoiced?: number;
 }

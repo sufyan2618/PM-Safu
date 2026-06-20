@@ -22,7 +22,7 @@ export const PAYROLL_STATUS_MAP: Record<PayrollStatus, StatusMeta> = {
   draft: { label: 'Draft', tone: 'neutral' },
   processing: { label: 'Processing', tone: 'warning' },
   completed: { label: 'Completed', tone: 'success' },
-  failed: { label: 'Failed', tone: 'danger' },
+  cancelled: { label: 'Cancelled', tone: 'danger' },
 };
 
 export const EMPLOYEE_STATUS_MAP: Record<EmployeeStatus, StatusMeta> = {

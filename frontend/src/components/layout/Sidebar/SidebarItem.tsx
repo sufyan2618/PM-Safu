@@ -17,7 +17,7 @@ export function SidebarItem({ label, icon: Icon, path, collapsed, onNavigate }: 
       to={path}
       end={path === '/'}
       onClick={onNavigate}
-      className={({ isActive }) =>
+      className={({ isActive }: { isActive: boolean }) =>
         cn(
           'group relative flex items-center gap-3 rounded-lg px-3 py-2 text-body-sm font-medium transition-colors',
           collapsed && 'justify-center px-0',

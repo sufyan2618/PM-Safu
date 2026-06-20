@@ -42,7 +42,7 @@ export function PayrollRunProcessPage() {
 
   const employees = useEmployees({ pageSize: 100, status: 'active' });
   const processPayroll = useProcessPayroll();
-  const activeEmployees = employees.data?.items ?? [];
+  const activeEmployees = useMemo(() => employees.data?.items ?? [], [employees.data]);
 
   const selected = useMemo(
     () =>

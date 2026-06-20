@@ -1,4 +1,4 @@
-export type PayrollStatus = 'draft' | 'processing' | 'completed' | 'failed';
+export type PayrollStatus = 'draft' | 'processing' | 'completed' | 'cancelled';
 
 export interface PayrollRun {
   id: string;

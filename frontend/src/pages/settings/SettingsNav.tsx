@@ -21,7 +21,7 @@ export function SettingsNav() {
           <NavLink
             key={tab.to}
             to={tab.to}
-            className={({ isActive }) =>
+            className={({ isActive }: { isActive: boolean }) =>
               cn(
                 'relative whitespace-nowrap px-4 py-2.5 text-body-sm font-medium transition-colors',
                 isActive ? 'text-ink-900' : 'text-ink-400 hover:text-ink-600',

@@ -4,6 +4,22 @@ export interface ApiResponse<T> {
   success: boolean;
 }
 
+/** Meta envelope returned by paginated list endpoints. */
+export interface ApiMeta {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+/** Raw success envelope as returned by the backend. */
+export interface ApiEnvelope<T> {
+  success: boolean;
+  message: string;
+  data: T;
+  meta?: ApiMeta;
+}
+
 export interface PaginationMeta {
   page: number;
   limit: number;
