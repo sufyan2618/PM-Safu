@@ -11,6 +11,8 @@ import { Drawer } from '@/components/ui/Drawer';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Avatar } from '@/components/ui/Avatar';
 import { DataTable, type Column } from '@/components/ui/Table';
+import { ServerExportButton } from '@/components/domain/shared/ServerExportButton';
+import { exportService } from '@/api/services/export.service';
 import { useClients, useCreateClient } from '@/hooks/queries/useClients';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useToast } from '@/hooks/useToast';
@@ -86,9 +88,12 @@ export function ClientListPage() {
         title="Clients"
         description="Everyone you bill, with totals and outstanding balances."
         actions={
-          <Button leftIcon={<Plus size={16} />} onClick={() => setDrawerOpen(true)}>
-            Add client
-          </Button>
+          <>
+            <ServerExportButton onExport={() => exportService.clients()} />
+            <Button leftIcon={<Plus size={16} />} onClick={() => setDrawerOpen(true)}>
+              Add client
+            </Button>
+          </>
         }
       />
 

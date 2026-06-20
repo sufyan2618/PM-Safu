@@ -51,3 +51,40 @@ export interface OutstandingClient {
   outstanding: number;
   totalInvoiced?: number;
 }
+
+export interface ArAgingBucket {
+  bucket: string;
+  amount: number;
+  count: number;
+}
+
+export interface ArAging {
+  buckets: ArAgingBucket[];
+  totalOutstanding: number;
+}
+
+export interface CollectionMetrics {
+  from: string;
+  to: string;
+  collected: number;
+  outstanding: number;
+  creditSales: number;
+  collectionRate: number;
+  dso: number;
+  periodDays: number;
+}
+
+export interface RevenueByClient {
+  clientId: string;
+  clientName: string;
+  revenue: number;
+  invoiceCount: number;
+}
+
+export interface PayrollByDepartment {
+  departmentId: string | null;
+  departmentName: string;
+  net: number;
+  gross: number;
+  employeeCount: number;
+}

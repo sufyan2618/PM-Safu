@@ -14,6 +14,8 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { DataTable, type Column } from '@/components/ui/Table';
 import { StatusPill } from '@/components/domain/shared/StatusPill';
 import { FilterChips } from '@/components/domain/shared/FilterChips';
+import { ServerExportButton } from '@/components/domain/shared/ServerExportButton';
+import { exportService } from '@/api/services/export.service';
 import {
   useCreateEmployee,
   useDepartments,
@@ -101,9 +103,12 @@ export function EmployeeListPage() {
         title="Employees"
         description="Your people, their roles and employment status."
         actions={
-          <Button leftIcon={<Plus size={16} />} onClick={() => setDrawerOpen(true)}>
-            Add employee
-          </Button>
+          <>
+            <ServerExportButton onExport={() => exportService.employees()} />
+            <Button leftIcon={<Plus size={16} />} onClick={() => setDrawerOpen(true)}>
+              Add employee
+            </Button>
+          </>
         }
       />
 

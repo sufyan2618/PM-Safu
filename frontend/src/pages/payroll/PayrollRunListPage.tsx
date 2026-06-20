@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { DataTable, type Column } from '@/components/ui/Table';
 import { StatusPill } from '@/components/domain/shared/StatusPill';
+import { ServerExportButton } from '@/components/domain/shared/ServerExportButton';
+import { exportService } from '@/api/services/export.service';
 import { usePayrollRuns } from '@/hooks/queries/usePayroll';
 import { formatCurrency } from '@/utils/formatCurrency';
 import { formatPeriod, formatDate } from '@/utils/formatDate';
@@ -57,9 +59,12 @@ export function PayrollRunListPage() {
         title="Payroll runs"
         description="History of every pay period you've processed."
         actions={
-          <Button leftIcon={<Play size={16} />} onClick={() => navigate(ROUTES.PAYROLL_NEW)}>
-            Run payroll
-          </Button>
+          <>
+            <ServerExportButton onExport={() => exportService.payroll()} />
+            <Button leftIcon={<Play size={16} />} onClick={() => navigate(ROUTES.PAYROLL_NEW)}>
+              Run payroll
+            </Button>
+          </>
         }
       />
 

@@ -33,3 +33,28 @@ export function useFinancialSummary(range: DateRange) {
     queryFn: () => dashboardService.financialSummary(range),
   });
 }
+
+export function useArAging() {
+  return useQuery({ queryKey: ['dashboard', 'ar-aging'], queryFn: dashboardService.arAging });
+}
+
+export function useCollectionMetrics(range: DateRange = {}) {
+  return useQuery({
+    queryKey: ['dashboard', 'collection-metrics', range],
+    queryFn: () => dashboardService.collectionMetrics(range),
+  });
+}
+
+export function useRevenueByClient(range: DateRange = {}, limit = 8) {
+  return useQuery({
+    queryKey: ['dashboard', 'revenue-by-client', range, limit],
+    queryFn: () => dashboardService.revenueByClient(range, limit),
+  });
+}
+
+export function usePayrollByDepartment(range: DateRange = {}) {
+  return useQuery({
+    queryKey: ['dashboard', 'payroll-by-department', range],
+    queryFn: () => dashboardService.payrollByDepartment(range),
+  });
+}

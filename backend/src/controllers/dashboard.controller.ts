@@ -6,6 +6,7 @@ import { ClientModel } from "../models/client.model";
 import { EmployeeModel } from "../models/employee.model";
 import { DepartmentModel } from "../models/department.model";
 import { PayrollModel } from "../models/payroll.model";
+import { SalarySlipModel } from "../models/salarySlip.model";
 import { CompanyModel } from "../models/company.model";
 import { asyncHandler } from "../utils/async-handler";
 import { sendSuccess } from "../utils/apiResponse";
@@ -316,6 +317,198 @@ export const financialSummary = asyncHandler(async (req: Request, res: Response)
   const { from, to } = resolveRange(req);
   const summary = await computeFinancialSummary(companyId, from, to);
   return sendSuccess(res, { data: summary });
+});
+
+// ── Advanced financial analytics ────────────────────────────────────────────
+
+const OUTSTANDING_STATUSES = [
+  InvoiceStatus.SENT,
+  InvoiceStatus.PARTIALLY_PAID,
+  InvoiceStatus.OVERDUE,
+];
+
+const AR_AGING_BUCKETS = ["current", "1-30", "31-60", "61-90", "90+"] as const;
+type ArAgingBucket = (typeof AR_AGING_BUCKETS)[number];
+
+/**
+ * AR aging: bucket outstanding invoices by how overdue they are relative to now.
+ * `current` = not yet due; the rest are days past `dueDate`.
+ */
+export const arAging = asyncHandler(async (req: Request, res: Response) => {
+  const companyId = companyObjectId(req);
+  const now = new Date();
+
+  const rows = await InvoiceModel.aggregate<{ _id: ArAgingBucket; amount: number; count: number }>([
+    { $match: { companyId, status: { $in: OUTSTANDING_STATUSES } } },
+    {
+      $addFields: {
+        daysOverdue: { $dateDiff: { startDate: "$dueDate", endDate: now, unit: "day" } },
+      },
+    },
+    {
+      $addFields: {
+        bucket: {
+          $switch: {
+            branches: [
+              { case: { $lte: ["$daysOverdue", 0] }, then: "current" },
+              { case: { $lte: ["$daysOverdue", 30] }, then: "1-30" },
+              { case: { $lte: ["$daysOverdue", 60] }, then: "31-60" },
+              { case: { $lte: ["$daysOverdue", 90] }, then: "61-90" },
+            ],
+            default: "90+",
+          },
+        },
+      },
+    },
+    { $group: { _id: "$bucket", amount: { $sum: "$amountDue" }, count: { $sum: 1 } } },
+  ]);
+
+  const byBucket = new Map(rows.map((r) => [r._id, r]));
+  const buckets = AR_AGING_BUCKETS.map((bucket) => ({
+    bucket,
+    amount: byBucket.get(bucket)?.amount ?? 0,
+    count: byBucket.get(bucket)?.count ?? 0,
+  }));
+  const totalOutstanding = buckets.reduce((sum, b) => sum + b.amount, 0);
+
+  return sendSuccess(res, { data: { buckets, totalOutstanding } });
+});
+
+/**
+ * Collection rate and Days Sales Outstanding (DSO) for a date range.
+ * - collectionRate = collected / (collected + outstanding), where `collected` is
+ *   revenue from invoices paid within the range and `outstanding` is the current
+ *   open AR snapshot (status in SENT/PARTIALLY_PAID/OVERDUE).
+ * - DSO ≈ (outstanding AR / total credit sales in period) × number of days in period.
+ */
+export const collectionMetrics = asyncHandler(async (req: Request, res: Response) => {
+  const companyId = companyObjectId(req);
+  const { from, to } = resolveRange(req);
+
+  const [collectedAgg, outstandingAgg, creditSalesAgg] = await Promise.all([
+    InvoiceModel.aggregate<{ _id: null; total: number }>([
+      { $match: { companyId, status: InvoiceStatus.PAID, paidOn: { $gte: from, $lte: to } } },
+      { $group: { _id: null, total: { $sum: "$grandTotal" } } },
+    ]),
+    InvoiceModel.aggregate<{ _id: null; total: number }>([
+      { $match: { companyId, status: { $in: OUTSTANDING_STATUSES } } },
+      { $group: { _id: null, total: { $sum: "$amountDue" } } },
+    ]),
+    InvoiceModel.aggregate<{ _id: null; total: number }>([
+      {
+        $match: {
+          companyId,
+          status: { $ne: InvoiceStatus.DRAFT },
+          issueDate: { $gte: from, $lte: to },
+        },
+      },
+      { $group: { _id: null, total: { $sum: "$grandTotal" } } },
+    ]),
+  ]);
+
+  const collected = collectedAgg[0]?.total ?? 0;
+  const outstanding = outstandingAgg[0]?.total ?? 0;
+  const creditSales = creditSalesAgg[0]?.total ?? 0;
+
+  const denominator = collected + outstanding;
+  const collectionRate = denominator > 0 ? Math.round((collected / denominator) * 1000) / 10 : 0;
+
+  const periodDays = Math.max(1, Math.round((to.getTime() - from.getTime()) / 86_400_000));
+  const dso = creditSales > 0 ? Math.round((outstanding / creditSales) * periodDays) : 0;
+
+  return sendSuccess(res, {
+    data: { from, to, collected, outstanding, creditSales, collectionRate, dso, periodDays },
+  });
+});
+
+/** Top clients by collected revenue (PAID invoices) within a date range. */
+export const revenueByClient = asyncHandler(async (req: Request, res: Response) => {
+  const companyId = companyObjectId(req);
+  const { from, to } = resolveRange(req);
+  const limit = Number(req.query.limit ?? 8);
+
+  const rows = await InvoiceModel.aggregate<{
+    _id: Types.ObjectId;
+    revenue: number;
+    invoiceCount: number;
+    clientName: string;
+  }>([
+    { $match: { companyId, status: InvoiceStatus.PAID, paidOn: { $gte: from, $lte: to } } },
+    { $group: { _id: "$clientId", revenue: { $sum: "$grandTotal" }, invoiceCount: { $sum: 1 } } },
+    { $sort: { revenue: -1 } },
+    { $limit: limit },
+    { $lookup: { from: "clients", localField: "_id", foreignField: "_id", as: "client" } },
+    { $unwind: { path: "$client", preserveNullAndEmptyArrays: true } },
+    {
+      $project: {
+        revenue: 1,
+        invoiceCount: 1,
+        clientName: { $ifNull: ["$client.name", "Unknown client"] },
+      },
+    },
+  ]);
+
+  const data = rows.map((r) => ({
+    clientId: String(r._id),
+    clientName: r.clientName,
+    revenue: r.revenue,
+    invoiceCount: r.invoiceCount,
+  }));
+
+  return sendSuccess(res, { data });
+});
+
+/** Total payroll cost grouped by department for the salary slips within a range. */
+export const payrollByDepartment = asyncHandler(async (req: Request, res: Response) => {
+  const companyId = companyObjectId(req);
+  const { from, to } = resolveRange(req);
+
+  const rows = await SalarySlipModel.aggregate<{
+    _id: Types.ObjectId | null;
+    departmentName: string;
+    net: number;
+    gross: number;
+    employeeCount: number;
+  }>([
+    { $match: { companyId } },
+    {
+      $addFields: {
+        periodDate: { $dateFromParts: { year: "$period.year", month: "$period.month", day: 1 } },
+      },
+    },
+    { $match: { periodDate: { $gte: from, $lte: to } } },
+    { $lookup: { from: "employees", localField: "employeeId", foreignField: "_id", as: "employee" } },
+    { $unwind: { path: "$employee", preserveNullAndEmptyArrays: true } },
+    {
+      $group: {
+        _id: "$employee.departmentId",
+        net: { $sum: "$netSalary" },
+        gross: { $sum: "$grossSalary" },
+        employees: { $addToSet: "$employeeId" },
+      },
+    },
+    { $lookup: { from: "departments", localField: "_id", foreignField: "_id", as: "department" } },
+    { $unwind: { path: "$department", preserveNullAndEmptyArrays: true } },
+    {
+      $project: {
+        net: 1,
+        gross: 1,
+        employeeCount: { $size: "$employees" },
+        departmentName: { $ifNull: ["$department.name", "Unassigned"] },
+      },
+    },
+    { $sort: { net: -1 } },
+  ]);
+
+  const data = rows.map((r) => ({
+    departmentId: r._id ? String(r._id) : null,
+    departmentName: r.departmentName,
+    net: r.net,
+    gross: r.gross,
+    employeeCount: r.employeeCount,
+  }));
+
+  return sendSuccess(res, { data });
 });
 
 export const exportReport = asyncHandler(async (req: Request, res: Response) => {

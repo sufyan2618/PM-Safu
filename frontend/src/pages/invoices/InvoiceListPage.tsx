@@ -8,7 +8,8 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { DataTable, type Column } from '@/components/ui/Table';
 import { StatusPill } from '@/components/domain/shared/StatusPill';
 import { FilterChips } from '@/components/domain/shared/FilterChips';
-import { ExportButton } from '@/components/domain/shared/ExportButton';
+import { ServerExportButton } from '@/components/domain/shared/ServerExportButton';
+import { exportService } from '@/api/services/export.service';
 import { useInvoices } from '@/hooks/queries/useInvoices';
 import { useDebounce } from '@/hooks/useDebounce';
 import { formatCurrency } from '@/utils/formatCurrency';
@@ -65,16 +66,7 @@ export function InvoiceListPage() {
         description="Create, send and track every invoice in one place."
         actions={
           <>
-            <ExportButton
-              data={data?.items ?? []}
-              filename="invoices"
-              columns={[
-                { header: 'Invoice', accessor: (r) => r.invoiceNumber },
-                { header: 'Client', accessor: (r) => r.client?.name ?? '' },
-                { header: 'Status', accessor: (r) => r.status },
-                { header: 'Total', accessor: (r) => r.total },
-              ]}
-            />
+            <ServerExportButton onExport={() => exportService.invoices()} />
             <Button leftIcon={<Plus size={16} />} onClick={() => navigate(ROUTES.INVOICE_CREATE)}>
               New invoice
             </Button>

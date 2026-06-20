@@ -15,6 +15,12 @@ export const summaryQuery = z.object({
   to: z.coerce.date().optional(),
 });
 
+export const revenueByClientQuery = z.object({
+  from: z.coerce.date().optional(),
+  to: z.coerce.date().optional(),
+  limit: z.coerce.number().int().min(1).max(50).optional(),
+});
+
 export const reportExportQuery = z.object({
   format: z.enum(["pdf", "csv"]).optional(),
   from: z.coerce.date().optional(),

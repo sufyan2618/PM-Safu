@@ -7,7 +7,8 @@ import { Avatar } from '@/components/ui/Avatar';
 import { DataTable, type Column } from '@/components/ui/Table';
 import { StatusPill } from '@/components/domain/shared/StatusPill';
 import { FilterChips } from '@/components/domain/shared/FilterChips';
-import { ExportButton } from '@/components/domain/shared/ExportButton';
+import { ServerExportButton } from '@/components/domain/shared/ServerExportButton';
+import { exportService } from '@/api/services/export.service';
 import { useSalarySlips } from '@/hooks/queries/useSalarySlips';
 import { formatCurrency } from '@/utils/formatCurrency';
 import { formatPeriod } from '@/utils/formatDate';
@@ -68,19 +69,7 @@ export function SalarySlipListPage() {
       <PageHeader
         title="Salary slips"
         description="Every generated payslip, filterable by status and period."
-        actions={
-          <ExportButton
-            data={data?.items ?? []}
-            filename="salary-slips"
-            columns={[
-              { header: 'Employee', accessor: (r) => r.employee?.name ?? '' },
-              { header: 'Period', accessor: (r) => r.period },
-              { header: 'Gross', accessor: (r) => r.grossSalary },
-              { header: 'Net', accessor: (r) => r.netSalary },
-              { header: 'Status', accessor: (r) => r.paymentStatus },
-            ]}
-          />
-        }
+        actions={<ServerExportButton onExport={() => exportService.salarySlips()} />}
       />
 
       <div className="mb-4">

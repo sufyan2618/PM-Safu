@@ -17,11 +17,15 @@ import type {
 } from '../dto';
 import type {
   ApiEnvelope,
+  ArAging,
+  CollectionMetrics,
   DashboardStats,
   FinancialSummary,
   InvoiceStatusBreakdown,
   OutstandingClient,
+  PayrollByDepartment,
   PayrollTrendPoint,
+  RevenueByClient,
   RevenuePoint,
 } from '@/types';
 
@@ -78,6 +82,35 @@ export const dashboardService = {
       { params: range },
     );
     return mapFinancialSummary(data.data);
+  },
+
+  async arAging(): Promise<ArAging> {
+    const { data } = await axiosClient.get<ApiEnvelope<ArAging>>(ENDPOINTS.dashboard.arAging);
+    return data.data;
+  },
+
+  async collectionMetrics(range: DateRange = {}): Promise<CollectionMetrics> {
+    const { data } = await axiosClient.get<ApiEnvelope<CollectionMetrics>>(
+      ENDPOINTS.dashboard.collectionMetrics,
+      { params: range },
+    );
+    return data.data;
+  },
+
+  async revenueByClient(range: DateRange = {}, limit = 8): Promise<RevenueByClient[]> {
+    const { data } = await axiosClient.get<ApiEnvelope<RevenueByClient[]>>(
+      ENDPOINTS.dashboard.revenueByClient,
+      { params: { ...range, limit } },
+    );
+    return data.data;
+  },
+
+  async payrollByDepartment(range: DateRange = {}): Promise<PayrollByDepartment[]> {
+    const { data } = await axiosClient.get<ApiEnvelope<PayrollByDepartment[]>>(
+      ENDPOINTS.dashboard.payrollByDepartment,
+      { params: range },
+    );
+    return data.data;
   },
 
   async downloadReportPdf(range: DateRange = {}, filename = 'financial-report.pdf'): Promise<void> {

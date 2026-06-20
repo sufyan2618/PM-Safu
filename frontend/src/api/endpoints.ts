@@ -20,6 +20,10 @@ export const ENDPOINTS = {
     payrollTrend: '/dashboard/payroll-trend',
     outstandingClients: '/dashboard/outstanding-clients',
     financialSummary: '/dashboard/financial-summary',
+    arAging: '/dashboard/ar-aging',
+    collectionMetrics: '/dashboard/collection-metrics',
+    revenueByClient: '/dashboard/revenue-by-client',
+    payrollByDepartment: '/dashboard/payroll-by-department',
     reportExport: '/dashboard/report/export',
   },
   invoices: {

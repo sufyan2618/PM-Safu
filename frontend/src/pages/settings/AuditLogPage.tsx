@@ -8,6 +8,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { DataTable, type Column } from '@/components/ui/Table';
+import { ExportButton } from '@/components/domain/shared/ExportButton';
 import { useAuditActions, useAuditLogs } from '@/hooks/queries/useAuditLogs';
 import { useDebounce } from '@/hooks/useDebounce';
 import { formatDateTime, formatRelative } from '@/utils/formatDate';
@@ -180,6 +181,24 @@ export function AuditLogPage() {
       <PageHeader
         title="Audit Log"
         description="A complete, tamper-evident record of every action taken in your company."
+        actions={
+          <ExportButton
+            data={data?.items ?? []}
+            filename="audit-log"
+            columns={[
+              { header: 'Time', accessor: (r) => formatDateTime(r.createdAt) },
+              { header: 'Actor', accessor: (r) => r.actorName ?? r.actorEmail ?? 'Unknown' },
+              { header: 'Email', accessor: (r) => r.actorEmail ?? '' },
+              { header: 'Role', accessor: (r) => roleLabel(r.actorRole) },
+              { header: 'Action', accessor: (r) => formatAction(r.action) },
+              { header: 'Method', accessor: (r) => r.method ?? '' },
+              { header: 'Target', accessor: (r) => r.targetType ?? '' },
+              { header: 'Status', accessor: (r) => r.status },
+              { header: 'Status code', accessor: (r) => r.statusCode ?? '' },
+              { header: 'IP address', accessor: (r) => r.ipAddress ?? '' },
+            ]}
+          />
+        }
       />
 
       <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6">

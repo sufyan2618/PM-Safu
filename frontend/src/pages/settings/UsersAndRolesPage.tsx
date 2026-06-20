@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Dropdown } from '@/components/ui/Dropdown';
 import { IconButton } from '@/components/ui/IconButton';
 import { DataTable, type Column } from '@/components/ui/Table';
+import { ExportButton } from '@/components/domain/shared/ExportButton';
 import {
   useCreateUser,
   useDeleteUser,
@@ -156,9 +157,21 @@ export function UsersAndRolesPage() {
         title="Users & Roles"
         description="Manage team members and their access."
         actions={
-          <Button leftIcon={<UserPlus size={16} />} onClick={() => setOpen(true)}>
-            Invite user
-          </Button>
+          <>
+            <ExportButton
+              data={data?.items ?? []}
+              filename="users"
+              columns={[
+                { header: 'Name', accessor: (r) => r.name },
+                { header: 'Email', accessor: (r) => r.email },
+                { header: 'Role', accessor: (r) => ROLE_LABELS[r.role] },
+                { header: 'Status', accessor: (r) => (r.isActive ? 'Active' : 'Inactive') },
+              ]}
+            />
+            <Button leftIcon={<UserPlus size={16} />} onClick={() => setOpen(true)}>
+              Invite user
+            </Button>
+          </>
         }
       />
 
