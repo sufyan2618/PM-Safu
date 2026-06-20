@@ -1,0 +1,192 @@
+@import 'tailwindcss';
+
+/* Enable class-based dark mode (toggled on <html>). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * Design tokens — "The Ledger" (shared with the company app).
+ * Raw values live as CSS variables so dark mode is a pure variable swap.
+ */
+:root {
+  --bg-canvas: #f6f7f9;
+  --bg-surface: #ffffff;
+  --bg-sunken: #eff1f4;
+  --border-subtle: #e4e7ec;
+  --border-strong: #cbd2dc;
+
+  --ink-900: #0e1320;
+  --ink-600: #4b5468;
+  --ink-400: #8a92a3;
+
+  --accent-600: #0e7c5a;
+  --accent-500: #16966d;
+  --accent-100: #def3ea;
+
+  --warn-600: #b5780a;
+  --warn-100: #fcf0da;
+  --danger-600: #c2362f;
+  --danger-100: #fbe5e3;
+  --success-600: #2e8b57;
+  --success-100: #e2f4e9;
+  --info-600: #3060c2;
+  --info-100: #e4ecfb;
+
+  --shadow-card: 0 1px 2px rgba(15, 18, 26, 0.04), 0 1px 1px rgba(15, 18, 26, 0.03);
+  --shadow-popover: 0 8px 24px rgba(15, 18, 26, 0.12);
+}
+
+.dark {
+  --bg-canvas: #11141a;
+  --bg-surface: #181b22;
+  --bg-sunken: #1f232c;
+  --border-subtle: #2a2f3a;
+  --border-strong: #3a4150;
+
+  --ink-900: #f2f4f7;
+  --ink-600: #afb6c4;
+  --ink-400: #6e7585;
+
+  --accent-600: #2bb683;
+  --accent-500: #3fcb97;
+  --accent-100: #16302a;
+
+  --warn-600: #e0a53c;
+  --warn-100: #332714;
+  --danger-600: #e5635b;
+  --danger-100: #34191a;
+  --success-600: #4fb97b;
+  --success-100: #173425;
+  --info-600: #6e97e8;
+  --info-100: #1a2336;
+
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 1px rgba(0, 0, 0, 0.2);
+  --shadow-popover: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+@theme {
+  --color-canvas: var(--bg-canvas);
+  --color-surface: var(--bg-surface);
+  --color-sunken: var(--bg-sunken);
+  --color-subtle: var(--border-subtle);
+  --color-strong: var(--border-strong);
+
+  --color-ink-900: var(--ink-900);
+  --color-ink-600: var(--ink-600);
+  --color-ink-400: var(--ink-400);
+
+  --color-accent-600: var(--accent-600);
+  --color-accent-500: var(--accent-500);
+  --color-accent-100: var(--accent-100);
+
+  --color-warn-600: var(--warn-600);
+  --color-warn-100: var(--warn-100);
+  --color-danger-600: var(--danger-600);
+  --color-danger-100: var(--danger-100);
+  --color-success-600: var(--success-600);
+  --color-success-100: var(--success-100);
+  --color-info-600: var(--info-600);
+  --color-info-100: var(--info-100);
+
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-data: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', monospace;
+
+  --text-display-lg: 2rem;
+  --text-display-lg--line-height: 2.5rem;
+  --text-display-lg--font-weight: 600;
+  --text-display-sm: 1.5rem;
+  --text-display-sm--line-height: 2rem;
+  --text-display-sm--font-weight: 600;
+  --text-heading: 1.125rem;
+  --text-heading--line-height: 1.625rem;
+  --text-heading--font-weight: 600;
+  --text-body: 0.875rem;
+  --text-body--line-height: 1.375rem;
+  --text-body-sm: 0.8125rem;
+  --text-body-sm--line-height: 1.25rem;
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1rem;
+  --text-caption--font-weight: 500;
+  --text-data-lg: 1.75rem;
+  --text-data-lg--line-height: 2.125rem;
+  --text-data-lg--font-weight: 500;
+  --text-data: 0.875rem;
+  --text-data--line-height: 1.25rem;
+  --text-data--font-weight: 500;
+
+  --shadow-card: var(--shadow-card);
+  --shadow-popover: var(--shadow-popover);
+}
+
+@layer base {
+  * {
+    border-color: var(--border-subtle);
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    margin: 0;
+    background-color: var(--bg-canvas);
+    color: var(--ink-900);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.57;
+  }
+
+  .font-data {
+    font-family: var(--font-data);
+    font-feature-settings: 'tnum';
+    letter-spacing: -0.01em;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--accent-600);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  ::selection {
+    background-color: var(--accent-100);
+    color: var(--accent-600);
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-strong) transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  *::-webkit-scrollbar-thumb {
+    background-color: var(--border-strong);
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+}
+
+@layer utilities {
+  .shadow-card {
+    box-shadow: var(--shadow-card);
+  }
+  .shadow-popover {
+    box-shadow: var(--shadow-popover);
+  }
+  .ledger-rule {
+    border-top: 1px solid color-mix(in oklab, var(--accent-600) 20%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

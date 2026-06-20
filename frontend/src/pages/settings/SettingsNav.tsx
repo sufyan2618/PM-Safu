@@ -12,7 +12,7 @@ const TABS = [
 
 export function SettingsNav() {
   const role = useAuthStore((s) => s.user?.role);
-  const tabs = TABS.filter((t) => !t.adminOnly || role === 'admin');
+  const tabs = TABS.filter((t) => !t.adminOnly || role === 'company_admin');
 
   return (
     <div className="mb-6 border-b border-subtle">
