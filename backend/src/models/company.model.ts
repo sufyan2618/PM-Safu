@@ -11,9 +11,17 @@ export interface IInvoiceSettings {
   defaultTemplateId?: Types.ObjectId;
 }
 
+export interface ITaxSlab {
+  upTo?: number;
+  rate: number;
+}
+
 export interface IPayrollSettings {
   payDay: number;
   defaultWorkingDaysPerMonth: number;
+  taxEnabled: boolean;
+  taxDeductionLabel: string;
+  taxSlabs: ITaxSlab[];
 }
 
 export interface ICompany extends Document {
@@ -55,10 +63,21 @@ const invoiceSettingsSchema = new Schema<IInvoiceSettings>(
   { _id: false },
 );
 
+const taxSlabSchema = new Schema<ITaxSlab>(
+  {
+    upTo: { type: Number, min: 0 },
+    rate: { type: Number, required: true, min: 0, max: 100 },
+  },
+  { _id: false },
+);
+
 const payrollSettingsSchema = new Schema<IPayrollSettings>(
   {
     payDay: { type: Number, default: 1, min: 1, max: 31 },
     defaultWorkingDaysPerMonth: { type: Number, default: 26 },
+    taxEnabled: { type: Boolean, default: false },
+    taxDeductionLabel: { type: String, default: "Income Tax", trim: true },
+    taxSlabs: { type: [taxSlabSchema], default: [] },
   },
   { _id: false },
 );

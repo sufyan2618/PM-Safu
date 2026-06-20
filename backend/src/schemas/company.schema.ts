@@ -25,4 +25,14 @@ export const invoiceSettingsSchema = z.object({
 export const payrollSettingsSchema = z.object({
   payDay: z.coerce.number().int().min(1).max(31).optional(),
   defaultWorkingDaysPerMonth: z.coerce.number().int().min(1).max(31).optional(),
+  taxEnabled: z.boolean().optional(),
+  taxDeductionLabel: z.string().trim().min(1).max(40).optional(),
+  taxSlabs: z
+    .array(
+      z.object({
+        upTo: z.coerce.number().min(0).optional(),
+        rate: z.coerce.number().min(0).max(100),
+      }),
+    )
+    .optional(),
 });

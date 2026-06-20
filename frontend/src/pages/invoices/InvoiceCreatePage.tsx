@@ -20,6 +20,7 @@ import {
   useUpdateInvoice,
 } from '@/hooks/queries/useInvoices';
 import { invoiceService } from '@/api/services/invoice.service';
+import { useTaxRates } from '@/hooks/queries/useTaxRates';
 import { useToast } from '@/hooks/useToast';
 import { invoiceSchema, type InvoiceFormValues } from '@/constants/validation.constants';
 import { ROUTES } from '@/constants/routes.constants';
@@ -36,6 +37,7 @@ export function InvoiceCreatePage() {
 
   const clients = useClients({ pageSize: 100 });
   const templates = useInvoiceTemplates();
+  const taxRates = useTaxRates();
   const createInvoice = useCreateInvoice();
   const updateInvoice = useUpdateInvoice(id ?? '');
   const existing = useInvoice(isEdit ? id : undefined);
@@ -150,6 +152,8 @@ export function InvoiceCreatePage() {
         <InvoiceLineItemsEditor
           control={control}
           register={register}
+          setValue={setValue}
+          taxRates={taxRates.data ?? []}
           error={errors.lineItems?.message}
         />
       </Card>

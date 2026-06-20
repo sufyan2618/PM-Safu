@@ -28,6 +28,11 @@ export async function processPayrollRun(options: ProcessOptions): Promise<void> 
   try {
     const company = await CompanyModel.findById(options.companyId).select("payrollSettings");
     const workingDays = company?.payrollSettings.defaultWorkingDaysPerMonth ?? 26;
+    const taxConfig = {
+      enabled: company?.payrollSettings.taxEnabled ?? false,
+      label: company?.payrollSettings.taxDeductionLabel ?? "Income Tax",
+      slabs: company?.payrollSettings.taxSlabs ?? [],
+    };
 
     const employeeFilter: Record<string, unknown> = {
       companyId: options.companyId,
@@ -62,7 +67,7 @@ export async function processPayrollRun(options: ProcessOptions): Promise<void> 
           allowances: structure.allowances,
           deductions: structure.deductions,
         },
-        { workingDays, presentDays: workingDays },
+        { workingDays, presentDays: workingDays, tax: taxConfig },
       );
 
       await SalarySlipModel.findOneAndUpdate(

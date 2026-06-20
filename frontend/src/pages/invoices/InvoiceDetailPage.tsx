@@ -50,6 +50,16 @@ export function InvoiceDetailPage() {
 
   const shareUrl = `${window.location.origin}${ROUTES.INVOICE_SHARE(invoice.shareToken ?? '')}`;
 
+  // Per-rate tax breakdown for the summary (grouped by line-item tax rate).
+  const taxByRate = new Map<number, number>();
+  for (const item of invoice.lineItems) {
+    const rate = item.taxRate ?? 0;
+    if (rate <= 0) continue;
+    const base = item.quantity * item.unitPrice;
+    taxByRate.set(rate, (taxByRate.get(rate) ?? 0) + (base * rate) / 100);
+  }
+  const taxBreakdown = [...taxByRate.entries()].sort((a, b) => a[0] - b[0]);
+
   function copyShareLink() {
     navigator.clipboard.writeText(shareUrl);
     toast.success('Share link copied');
@@ -156,6 +166,23 @@ export function InvoiceDetailPage() {
                 </dd>
               </div>
               <div className="flex items-center justify-between">
+                <dt className="text-ink-600">Subtotal</dt>
+                <dd className="font-data text-ink-900">{formatCurrency(invoice.subtotal)}</dd>
+              </div>
+              {taxBreakdown.length > 0
+                ? taxBreakdown.map(([rate, amount]) => (
+                    <div key={rate} className="flex items-center justify-between">
+                      <dt className="text-ink-600">Tax ({rate}%)</dt>
+                      <dd className="font-data text-ink-900">{formatCurrency(amount)}</dd>
+                    </div>
+                  ))
+                : invoice.taxTotal > 0 && (
+                    <div className="flex items-center justify-between">
+                      <dt className="text-ink-600">Tax</dt>
+                      <dd className="font-data text-ink-900">{formatCurrency(invoice.taxTotal)}</dd>
+                    </div>
+                  )}
+              <div className="flex items-center justify-between border-t border-subtle pt-2.5">
                 <dt className="text-ink-600">Total</dt>
                 <dd className="font-data font-medium text-ink-900">{formatCurrency(invoice.total)}</dd>
               </div>

@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/Textarea';
 import { Select } from '@/components/ui/Select';
 import { FileUpload } from '@/components/ui/FileUpload';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { TaxRatesCard } from '@/components/domain/settings/TaxRatesCard';
 import { useCompany, useUpdateCompany } from '@/hooks/queries/useCompany';
 import { companyService } from '@/api/services/company.service';
 import { useToast } from '@/hooks/useToast';
@@ -117,16 +118,20 @@ export function CompanySettingsPage() {
             </form>
           </Card>
 
-          <Card>
-            <CardHeader title="Company logo" ruled />
-            <FileUpload
-              accept="image/png,image/jpeg,image/svg+xml"
-              preview="image"
-              label="Upload logo"
-              hint="Appears on invoices & payslips"
-              onFilesSelected={handleLogo}
-            />
-          </Card>
+          <div className="space-y-6">
+            <Card>
+              <CardHeader title="Company logo" ruled />
+              <FileUpload
+                accept="image/png,image/jpeg,image/svg+xml"
+                preview="image"
+                label="Upload logo"
+                hint="Appears on invoices & payslips"
+                onFilesSelected={handleLogo}
+              />
+            </Card>
+
+            <TaxRatesCard />
+          </div>
         </div>
       )}
     </>

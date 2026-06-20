@@ -1,17 +1,32 @@
-import { useFieldArray, type Control, type UseFormRegister } from 'react-hook-form';
+import {
+  useFieldArray,
+  type Control,
+  type UseFormRegister,
+  type UseFormSetValue,
+} from 'react-hook-form';
 import { Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { IconButton } from '@/components/ui/IconButton';
 import type { InvoiceFormValues } from '@/constants/validation.constants';
+import type { TaxRate } from '@/types';
 
 interface InvoiceLineItemsEditorProps {
   control: Control<InvoiceFormValues>;
   register: UseFormRegister<InvoiceFormValues>;
+  setValue?: UseFormSetValue<InvoiceFormValues>;
+  taxRates?: TaxRate[];
   error?: string;
 }
 
-export function InvoiceLineItemsEditor({ control, register, error }: InvoiceLineItemsEditorProps) {
+export function InvoiceLineItemsEditor({
+  control,
+  register,
+  setValue,
+  taxRates,
+  error,
+}: InvoiceLineItemsEditorProps) {
   const { fields, append, remove } = useFieldArray({ control, name: 'lineItems' });
+  const hasTaxRates = !!setValue && !!taxRates && taxRates.length > 0;
 
   return (
     <div>
@@ -22,7 +37,9 @@ export function InvoiceLineItemsEditor({ control, register, error }: InvoiceLine
               <th className="px-3 py-2.5 text-left font-medium">Description</th>
               <th className="w-20 px-3 py-2.5 text-right font-medium">Qty</th>
               <th className="w-28 px-3 py-2.5 text-right font-medium">Unit price</th>
-              <th className="w-20 px-3 py-2.5 text-right font-medium">Tax %</th>
+              <th className={`${hasTaxRates ? 'w-44' : 'w-20'} px-3 py-2.5 text-right font-medium`}>
+                Tax %
+              </th>
               <th className="w-10 px-3 py-2.5" />
             </tr>
           </thead>
@@ -53,12 +70,38 @@ export function InvoiceLineItemsEditor({ control, register, error }: InvoiceLine
                   />
                 </td>
                 <td className="px-2 py-1.5">
-                  <input
-                    type="number"
-                    step="0.5"
-                    {...register(`lineItems.${index}.taxRate`, { valueAsNumber: true })}
-                    className="w-full rounded-md bg-transparent px-2 py-1.5 text-right font-data text-body-sm text-ink-900 focus:bg-sunken focus:outline-none"
-                  />
+                  <div className="flex items-center justify-end gap-1.5">
+                    {hasTaxRates && (
+                      <select
+                        aria-label="Apply saved tax rate"
+                        defaultValue=""
+                        onChange={(e) => {
+                          const rate = Number(e.target.value);
+                          if (!Number.isNaN(rate)) {
+                            setValue!(`lineItems.${index}.taxRate`, rate, {
+                              shouldValidate: true,
+                              shouldDirty: true,
+                            });
+                          }
+                          e.target.value = '';
+                        }}
+                        className="w-24 rounded-md bg-sunken px-1.5 py-1.5 text-caption text-ink-600 focus:outline-none"
+                      >
+                        <option value="">Code…</option>
+                        {taxRates!.map((t) => (
+                          <option key={t.id} value={t.rate}>
+                            {t.name} ({t.rate}%)
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                    <input
+                      type="number"
+                      step="0.5"
+                      {...register(`lineItems.${index}.taxRate`, { valueAsNumber: true })}
+                      className="w-16 rounded-md bg-transparent px-2 py-1.5 text-right font-data text-body-sm text-ink-900 focus:bg-sunken focus:outline-none"
+                    />
+                  </div>
                 </td>
                 <td className="px-2 py-1.5 text-center">
                   <IconButton
