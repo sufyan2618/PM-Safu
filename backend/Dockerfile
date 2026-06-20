@@ -7,6 +7,6 @@ RUN bun install --frozen-lockfile || bun install
 
 COPY . .
 
-EXPOSE 3001
+EXPOSE 8000
 
 CMD ["bun", "src/index.ts"]
