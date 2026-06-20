@@ -38,6 +38,7 @@ export interface InvoiceRenderData {
     grandTotal: number;
     amountPaid: number;
     amountDue: number;
+    taxBreakdown?: { rate: number; taxableAmount: number; taxAmount: number }[];
   };
   currency: string;
   notes?: string;

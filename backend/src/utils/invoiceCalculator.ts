@@ -9,16 +9,56 @@ export interface InvoiceItemInput {
   discountType?: "percentage" | "flat";
 }
 
+export interface TaxBreakdownEntry {
+  rate: number;
+  taxableAmount: number;
+  taxAmount: number;
+}
+
 export interface InvoiceTotals {
   items: IInvoiceItem[];
   subTotal: number;
   totalTax: number;
   totalDiscount: number;
   grandTotal: number;
+  taxBreakdown: TaxBreakdownEntry[];
 }
 
 function round2(value: number): number {
   return Math.round((value + Number.EPSILON) * 100) / 100;
+}
+
+/**
+ * Groups line items by tax rate and returns the taxable base + tax amount per
+ * distinct rate (rates of 0 are ignored). Used for tax summaries on invoices.
+ */
+export function computeTaxBreakdown(
+  items: Pick<IInvoiceItem, "quantity" | "unitPrice" | "taxRate" | "discount" | "discountType">[],
+): TaxBreakdownEntry[] {
+  const byRate = new Map<number, { taxableAmount: number; taxAmount: number }>();
+
+  for (const item of items) {
+    const taxRate = item.taxRate ?? 0;
+    if (taxRate <= 0) continue;
+
+    const lineBase = round2((item.quantity ?? 1) * (item.unitPrice ?? 0));
+    const discount = item.discount ?? 0;
+    const discountAmount =
+      (item.discountType ?? "percentage") === "percentage"
+        ? round2((lineBase * discount) / 100)
+        : round2(discount);
+    const taxableBase = Math.max(lineBase - discountAmount, 0);
+    const taxAmount = round2((taxableBase * taxRate) / 100);
+
+    const entry = byRate.get(taxRate) ?? { taxableAmount: 0, taxAmount: 0 };
+    entry.taxableAmount = round2(entry.taxableAmount + taxableBase);
+    entry.taxAmount = round2(entry.taxAmount + taxAmount);
+    byRate.set(taxRate, entry);
+  }
+
+  return [...byRate.entries()]
+    .map(([rate, v]) => ({ rate, taxableAmount: v.taxableAmount, taxAmount: v.taxAmount }))
+    .sort((a, b) => a.rate - b.rate);
 }
 
 /**
@@ -67,5 +107,5 @@ export function computeInvoiceTotals(
   totalTax = round2(totalTax);
   const grandTotal = round2(subTotal - totalDiscount + totalTax + (shippingFee || 0));
 
-  return { items, subTotal, totalTax, totalDiscount, grandTotal };
+  return { items, subTotal, totalTax, totalDiscount, grandTotal, taxBreakdown: computeTaxBreakdown(items) };
 }

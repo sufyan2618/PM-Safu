@@ -24,6 +24,11 @@ function applyPaymentStatus(invoice: IInvoice) {
   if (invoice.status === InvoiceStatus.CANCELLED || invoice.status === InvoiceStatus.DRAFT) return;
   if (invoice.amountDue <= 0) {
     invoice.status = InvoiceStatus.PAID;
+    // Record when the invoice was fully settled (used by revenue analytics).
+    if (!invoice.paidOn) {
+      const lastPayment = invoice.paymentHistory.at(-1);
+      invoice.paidOn = lastPayment?.paidOn ?? new Date();
+    }
   } else if (invoice.amountPaid > 0) {
     invoice.status = InvoiceStatus.PARTIALLY_PAID;
   }
@@ -261,7 +266,7 @@ export const sendInvoice = asyncHandler(async (req: Request, res: Response) => {
       invoiceNumber: invoice.invoiceNumber,
       amount: formatCurrency(invoice.grandTotal, invoice.currency),
       dueDate: invoice.dueDate.toLocaleDateString(),
-      shareUrl: `${env.CLIENT_BASE_URL}/invoices/public/${invoice.shareToken}`,
+      shareUrl: `${env.CLIENT_BASE_URL}/invoice/share/${invoice.shareToken}`,
     });
   }
 

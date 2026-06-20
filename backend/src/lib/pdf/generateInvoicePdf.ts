@@ -107,7 +107,14 @@ export async function generateInvoicePdf(data: InvoiceRenderData): Promise<Buffe
   };
   summaryRow("Subtotal", formatCurrency(totals.subTotal, currency));
   if (totals.totalDiscount > 0) summaryRow("Discount", `-${formatCurrency(totals.totalDiscount, currency)}`);
-  if (totals.totalTax > 0) summaryRow("Tax", formatCurrency(totals.totalTax, currency));
+  const taxBreakdown = totals.taxBreakdown ?? [];
+  if (taxBreakdown.length > 0) {
+    for (const entry of taxBreakdown) {
+      summaryRow(`Tax (${entry.rate}%)`, formatCurrency(entry.taxAmount, currency));
+    }
+  } else if (totals.totalTax > 0) {
+    summaryRow("Tax", formatCurrency(totals.totalTax, currency));
+  }
   if (totals.shippingFee > 0) summaryRow("Shipping", formatCurrency(totals.shippingFee, currency));
   summaryRow("Total", formatCurrency(totals.grandTotal, currency), true, primary);
   if (totals.amountPaid > 0) summaryRow("Paid", `-${formatCurrency(totals.amountPaid, currency)}`);

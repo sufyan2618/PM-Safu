@@ -6,6 +6,7 @@ import type { IInvoice } from "../../models/invoice.model";
 import type { IAddress } from "../../models/shared";
 import type { InvoicePartyInfo, InvoiceRenderData } from "./renderData";
 import { buildInvoiceDesign } from "../../utils/invoiceTemplateDefaults";
+import { computeTaxBreakdown } from "../../utils/invoiceCalculator";
 import { BaseTheme } from "../../config/constants";
 
 function addressLines(address?: IAddress): string[] {
@@ -75,6 +76,7 @@ export async function buildInvoiceRenderData(invoice: IInvoice): Promise<Invoice
       grandTotal: invoice.grandTotal,
       amountPaid: invoice.amountPaid,
       amountDue: invoice.amountDue,
+      taxBreakdown: computeTaxBreakdown(invoice.items),
     },
     currency: invoice.currency,
     notes: invoice.notes,

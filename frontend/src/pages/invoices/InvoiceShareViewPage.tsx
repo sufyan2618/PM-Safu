@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Download } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 import { Brand } from '@/components/layout/Brand';
 import { Button } from '@/components/ui/Button';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -53,7 +54,10 @@ export function InvoiceShareViewPage() {
                   </span>
                 </p>
               </div>
-              <div className="flex gap-2">
+              <div className="flex items-center gap-4">
+                <div className="hidden rounded-lg border border-subtle bg-surface p-2 sm:block">
+                  <QRCodeSVG value={window.location.href} size={72} level="M" />
+                </div>
                 <Button
                   variant="outline"
                   leftIcon={<Download size={16} />}

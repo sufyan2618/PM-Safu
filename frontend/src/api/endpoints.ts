@@ -100,6 +100,12 @@ export const ENDPOINTS = {
     list: '/audit-logs',
     actions: '/audit-logs/actions',
   },
+  taxRates: {
+    list: '/tax-rates',
+    create: '/tax-rates',
+    update: (id: string) => `/tax-rates/${id}`,
+    remove: (id: string) => `/tax-rates/${id}`,
+  },
   company: {
     me: '/company/me',
     setup: '/company/setup',

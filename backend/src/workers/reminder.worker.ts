@@ -22,15 +22,22 @@ async function checkOverdueInvoices(): Promise<number> {
   return result.modifiedCount;
 }
 
+/** Minimum days between consecutive reminders for the same invoice (anti-spam). */
+const REMINDER_COOLDOWN_DAYS = 3;
+
 async function sendDueSoonReminders(): Promise<number> {
+  const now = new Date();
   const soon = new Date();
   soon.setDate(soon.getDate() + 3);
+  const cooldownCutoff = new Date(now.getTime() - REMINDER_COOLDOWN_DAYS * 86400000);
 
   const invoices = await InvoiceModel.find({
     status: { $in: [InvoiceStatus.SENT, InvoiceStatus.PARTIALLY_PAID, InvoiceStatus.OVERDUE] },
     amountDue: { $gt: 0 },
     dueDate: { $lte: soon },
     shareToken: { $exists: true, $ne: null },
+    // Skip invoices reminded within the cooldown window.
+    $or: [{ lastReminderAt: { $exists: false } }, { lastReminderAt: { $lte: cooldownCutoff } }],
   }).limit(500);
 
   let sent = 0;
@@ -49,8 +56,12 @@ async function sendDueSoonReminders(): Promise<number> {
       invoiceNumber: invoice.invoiceNumber,
       amountDue: formatCurrency(invoice.amountDue, invoice.currency),
       dueDate: invoice.dueDate.toLocaleDateString(),
-      shareUrl: `${env.CLIENT_BASE_URL}/invoices/public/${invoice.shareToken}`,
+      shareUrl: `${env.CLIENT_BASE_URL}/invoice/share/${invoice.shareToken}`,
     });
+
+    invoice.lastReminderAt = now;
+    invoice.reminderCount = (invoice.reminderCount ?? 0) + 1;
+    await invoice.save();
     sent += 1;
   }
   logger.info(`Due-soon reminders enqueued: ${sent}`);

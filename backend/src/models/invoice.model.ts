@@ -45,6 +45,9 @@ export interface IInvoice extends Document {
   shareToken?: string;
   pdfUrl?: string;
   sentAt?: Date;
+  paidOn?: Date;
+  lastReminderAt?: Date;
+  reminderCount: number;
   createdBy: Types.ObjectId;
   lastUpdatedBy?: Types.ObjectId;
   createdAt: Date;
@@ -105,6 +108,9 @@ const invoiceSchema = new Schema<IInvoice>(
     shareToken: { type: String, index: true, sparse: true, unique: true },
     pdfUrl: { type: String },
     sentAt: { type: Date },
+    paidOn: { type: Date },
+    lastReminderAt: { type: Date },
+    reminderCount: { type: Number, default: 0 },
     createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
     lastUpdatedBy: { type: Schema.Types.ObjectId, ref: "User" },
   },

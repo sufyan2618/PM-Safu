@@ -18,6 +18,7 @@ import type {
   ApiPayroll,
   ApiSalarySlip,
   ApiSalaryStructure,
+  ApiTaxRate,
   ApiTrendPoint,
   ApiUser,
 } from './dto';
@@ -43,6 +44,7 @@ import type {
   RevenuePoint,
   SalarySlip,
   SalaryStructure,
+  TaxRate,
   User,
 } from '@/types';
 
@@ -484,6 +486,17 @@ export function mapOutstandingClient(dto: ApiOutstandingClient): OutstandingClie
     companyName: dto.companyNameOfClient,
     outstanding: dto.totalOutstanding,
     totalInvoiced: dto.totalInvoiced,
+  };
+}
+
+export function mapTaxRate(dto: ApiTaxRate): TaxRate {
+  return {
+    id: dto._id,
+    name: dto.name,
+    rate: dto.rate,
+    description: dto.description,
+    isDefault: dto.isDefault,
+    isArchived: dto.isArchived,
   };
 }
 

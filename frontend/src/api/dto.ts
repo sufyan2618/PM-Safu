@@ -321,6 +321,16 @@ export interface ApiOutstandingClient {
   totalInvoiced: number;
 }
 
+export interface ApiTaxRate {
+  _id: string;
+  companyId: string;
+  name: string;
+  rate: number;
+  description?: string;
+  isDefault: boolean;
+  isArchived: boolean;
+}
+
 export interface ApiAuditLog {
   _id: string;
   actorId?: string;
