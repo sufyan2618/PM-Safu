@@ -1,32 +1,43 @@
 import mongoose, { Schema } from "mongoose";
-import type { IUser } from "../types/user";
+import type { Document, Types } from "mongoose";
+import { CompanyRole } from "../config/constants";
 
-const emailRateLimitSchema = new Schema(
-  {
-    count: { type: Number, default: 0 },
-    windowStart: { type: Date, default: Date.now },
-    resetAfterMinutes: { type: Number, default: 30 },
-  },
-  { _id: false },
-);
+export interface IUser extends Document {
+  _id: Types.ObjectId;
+  companyId: Types.ObjectId;
+  name: string;
+  email: string;
+  passwordHash: string;
+  role: CompanyRole;
+  isActive: boolean;
+  avatarUrl?: string;
+  employeeId?: Types.ObjectId;
+  invitedBy?: Types.ObjectId;
+  lastLoginAt?: Date;
+  passwordResetTokenHash?: string;
+  passwordResetExpiresAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 const userSchema = new Schema<IUser>(
   {
-    firstName: { type: String, required: true, trim: true },
-    lastName: { type: String, required: true, trim: true },
-    email: { type: String, required: true, unique: true, lowercase: true, trim: true },
-    password: { type: String, required: true },
-    isVerified: { type: Boolean, default: false },
-    loginAttempts: { type: Number, default: 0 },
-    isBlocked: { type: Boolean, default: false },
-    otp: { type: String },
-    otpExpiry: { type: Date },
-    otpPurpose: { type: String, enum: ["verify_email", "reset_password"] },
-    refreshToken: { type: String },
-    refreshTokenExpiry: { type: Date },
-    emailRateLimit: { type: emailRateLimitSchema, default: () => ({}) },
+    companyId: { type: Schema.Types.ObjectId, ref: "Company", required: true, index: true },
+    name: { type: String, required: true, trim: true },
+    email: { type: String, required: true, lowercase: true, trim: true },
+    passwordHash: { type: String, required: true, select: false },
+    role: { type: String, enum: Object.values(CompanyRole), required: true },
+    isActive: { type: Boolean, default: true },
+    avatarUrl: { type: String },
+    employeeId: { type: Schema.Types.ObjectId, ref: "Employee" },
+    invitedBy: { type: Schema.Types.ObjectId, ref: "User" },
+    lastLoginAt: { type: Date },
+    passwordResetTokenHash: { type: String, select: false },
+    passwordResetExpiresAt: { type: Date, select: false },
   },
   { timestamps: true },
 );
+
+userSchema.index({ companyId: 1, email: 1 }, { unique: true });
 
 export const UserModel = mongoose.model<IUser>("User", userSchema);
