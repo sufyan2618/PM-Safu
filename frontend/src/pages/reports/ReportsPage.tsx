@@ -8,9 +8,16 @@ import { DatePicker } from '@/components/ui/DatePicker/DatePicker';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { RevenueChart } from '@/components/domain/dashboard/RevenueChart';
 import { PayrollExpenseChart } from '@/components/domain/dashboard/PayrollExpenseChart';
+import { ArAgingChart } from '@/components/domain/dashboard/ArAgingChart';
+import { RevenueByClientChart } from '@/components/domain/dashboard/RevenueByClientChart';
+import { PayrollByDepartmentChart } from '@/components/domain/dashboard/PayrollByDepartmentChart';
 import {
+  useArAging,
+  useCollectionMetrics,
   useFinancialSummary,
+  usePayrollByDepartment,
   usePayrollTrend,
+  useRevenueByClient,
   useRevenueTrend,
 } from '@/hooks/queries/useDashboard';
 import { dashboardService } from '@/api/services/dashboard.service';
@@ -53,8 +60,13 @@ export function ReportsPage() {
   const summary = useFinancialSummary(range);
   const revenue = useRevenueTrend();
   const payroll = usePayrollTrend();
+  const arAging = useArAging();
+  const collection = useCollectionMetrics(range);
+  const revenueByClient = useRevenueByClient(range);
+  const payrollByDept = usePayrollByDepartment(range);
 
   const breakdown = summary.data?.invoiceStatusBreakdown ?? [];
+  const metrics = collection.data;
 
   const pieData = useMemo(
     () =>
@@ -284,6 +296,75 @@ export function ReportsPage() {
           <Skeleton className="h-32 rounded-lg" />
         )}
       </Card>
+
+      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <Card className="lg:col-span-2">
+          <CardHeader
+            title="Accounts receivable aging"
+            description="Outstanding balances by age"
+            ruled
+          />
+          {arAging.isLoading || !arAging.data ? (
+            <Skeleton className="h-[260px] rounded-lg" />
+          ) : arAging.data.totalOutstanding === 0 ? (
+            <div className="flex h-[260px] items-center justify-center text-body-sm text-ink-400">
+              No outstanding invoices — you're all caught up.
+            </div>
+          ) : (
+            <ArAgingChart data={arAging.data.buckets} />
+          )}
+        </Card>
+
+        <Card>
+          <CardHeader title="Collection health" description="Selected period" ruled />
+          {collection.isLoading || !metrics ? (
+            <Skeleton className="h-32 rounded-lg" />
+          ) : (
+            <dl className="space-y-4">
+              <Figure label="Collection rate" value={`${metrics.collectionRate}%`} tone="text-accent-700" />
+              <Figure label="Days sales outstanding" value={`${metrics.dso} days`} />
+              <Figure label="Collected" value={formatCurrency(metrics.collected)} />
+              <Figure
+                label="Open receivables"
+                value={formatCurrency(metrics.outstanding)}
+                tone="text-danger-600"
+              />
+            </dl>
+          )}
+        </Card>
+      </div>
+
+      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <Card className="lg:col-span-2">
+          <CardHeader
+            title="Top clients by revenue"
+            description="Collected in selected period"
+            ruled
+          />
+          {revenueByClient.isLoading || !revenueByClient.data ? (
+            <Skeleton className="h-[260px] rounded-lg" />
+          ) : revenueByClient.data.length === 0 ? (
+            <div className="flex h-[260px] items-center justify-center text-body-sm text-ink-400">
+              No paid invoices in this period
+            </div>
+          ) : (
+            <RevenueByClientChart data={revenueByClient.data} />
+          )}
+        </Card>
+
+        <Card>
+          <CardHeader title="Payroll by department" description="Net pay share" ruled />
+          {payrollByDept.isLoading || !payrollByDept.data ? (
+            <Skeleton className="h-[260px] rounded-lg" />
+          ) : payrollByDept.data.length === 0 ? (
+            <div className="flex h-[260px] items-center justify-center text-body-sm text-ink-400">
+              No payroll in this period
+            </div>
+          ) : (
+            <PayrollByDepartmentChart data={payrollByDept.data} />
+          )}
+        </Card>
+      </div>
     </>
   );
 }
