@@ -19,9 +19,18 @@ const app = express();
 
 app.set("trust proxy", 1);
 
+const allowedOrigins = [env.CLIENT_BASE_URL, env.ADMIN_BASE_URL];
+
 app.use(
   cors({
-    origin: env.CLIENT_BASE_URL,
+    origin(origin, callback) {
+      // Allow same-origin / non-browser requests (no Origin header).
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+      callback(new Error(`Origin not allowed by CORS: ${origin}`));
+    },
     credentials: true,
   }),
 );

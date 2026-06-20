@@ -8,6 +8,8 @@ const envSchema = z.object({
   PORT: z.coerce.number().default(8000),
   APP_BASE_URL: z.string().url().default("http://localhost:8000"),
   CLIENT_BASE_URL: z.string().url().default("http://localhost:5173"),
+  // Origin of the separately deployed super-admin console (allowed by CORS).
+  ADMIN_BASE_URL: z.string().url().default("http://localhost:5174"),
 
   MONGODB_URI: z.string().min(1, "MONGODB_URI is required"),
   REDIS_URL: z.string().url("REDIS_URL must be a valid URL"),
