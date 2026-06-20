@@ -27,6 +27,14 @@ export interface MeResult {
   company?: CompanySummary;
 }
 
+export interface CompanyMembership {
+  id: string;
+  companyName: string;
+  logoUrl?: string;
+  role?: string;
+  isCurrent: boolean;
+}
+
 export const authService = {
   async login(payload: LoginPayload): Promise<AuthResult> {
     const { data } = await axiosClient.post<ApiEnvelope<LoginResponse>>(
@@ -87,6 +95,24 @@ export const authService = {
 
   async resendVerification(email: string): Promise<void> {
     await axiosClient.post(ENDPOINTS.auth.resendVerification, { email });
+  },
+
+  async myCompanies(): Promise<CompanyMembership[]> {
+    const { data } = await axiosClient.get<ApiEnvelope<CompanyMembership[]>>(
+      ENDPOINTS.auth.myCompanies,
+    );
+    return data.data;
+  },
+
+  async switchCompany(companyId: string): Promise<AuthResult> {
+    const { data } = await axiosClient.post<ApiEnvelope<LoginResponse>>(
+      ENDPOINTS.auth.switchCompany(companyId),
+    );
+    return {
+      accessToken: data.data.accessToken,
+      user: mapUser(data.data.user),
+      company: mapCompanySummary(data.data.company),
+    };
   },
 
   async logout(): Promise<void> {

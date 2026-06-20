@@ -10,6 +10,7 @@ import { Select } from '@/components/ui/Select';
 import { FileUpload } from '@/components/ui/FileUpload';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { TaxRatesCard } from '@/components/domain/settings/TaxRatesCard';
+import { PayrollTaxCard } from '@/components/domain/settings/PayrollTaxCard';
 import { useCompany, useUpdateCompany } from '@/hooks/queries/useCompany';
 import { companyService } from '@/api/services/company.service';
 import { useToast } from '@/hooks/useToast';
@@ -131,6 +132,8 @@ export function CompanySettingsPage() {
             </Card>
 
             <TaxRatesCard />
+
+            <PayrollTaxCard />
           </div>
         </div>
       )}

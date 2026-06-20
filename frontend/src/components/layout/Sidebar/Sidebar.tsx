@@ -1,5 +1,5 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { CompanyBrand } from '../CompanyBrand';
+import { CompanySwitcher } from '../CompanySwitcher';
 import { SidebarItem } from './SidebarItem';
 import { NAV_SECTIONS } from '@/constants/navigation.constants';
 import { useUiStore } from '@/store/uiStore';
@@ -57,7 +57,7 @@ export function Sidebar({ collapsed, onNavigate, showCollapseToggle = true }: Si
             collapsed ? 'py-4' : 'px-1 pb-6 pt-3',
           )}
         >
-          <CompanyBrand collapsed={collapsed} />
+          <CompanySwitcher collapsed={collapsed} />
         </div>
 
         <nav className="space-y-1">

@@ -10,6 +10,8 @@ export const ENDPOINTS = {
     changePassword: '/auth/change-password',
     verifyEmail: '/auth/verify-email',
     resendVerification: '/auth/resend-verification',
+    myCompanies: '/auth/my-companies',
+    switchCompany: (companyId: string) => `/auth/switch-company/${companyId}`,
   },
   dashboard: {
     overview: '/dashboard/overview',
@@ -105,6 +107,13 @@ export const ENDPOINTS = {
     create: '/tax-rates',
     update: (id: string) => `/tax-rates/${id}`,
     remove: (id: string) => `/tax-rates/${id}`,
+  },
+  exports: {
+    invoices: '/export/invoices',
+    clients: '/export/clients',
+    employees: '/export/employees',
+    payroll: '/export/payroll',
+    salarySlips: '/export/salary-slips',
   },
   company: {
     me: '/company/me',

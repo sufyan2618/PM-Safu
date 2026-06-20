@@ -28,9 +28,17 @@ export interface InvoiceSettings {
   defaultTemplateId?: string;
 }
 
+export interface TaxSlab {
+  upTo?: number;
+  rate: number;
+}
+
 export interface PayrollSettings {
   payDay: number;
   defaultWorkingDaysPerMonth: number;
+  taxEnabled?: boolean;
+  taxDeductionLabel?: string;
+  taxSlabs?: TaxSlab[];
 }
 
 /** Full company document (GET /company/me). */

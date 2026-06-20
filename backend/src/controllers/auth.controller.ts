@@ -264,6 +264,106 @@ export const me = asyncHandler(async (req: Request, res: Response) => {
   });
 });
 
+/**
+ * Lists every active/approved company the logged-in person can access. Accounts
+ * are linked by email across tenants (each is a separate user record).
+ */
+export const myCompanies = asyncHandler(async (req: Request, res: Response) => {
+  const principal = req.user;
+  if (!principal || principal.scope === PlatformScope.SUPER_ADMIN) {
+    throw ApiError.forbidden("Only company users can list companies");
+  }
+
+  const current = await UserModel.findById(principal.sub).select("email companyId");
+  if (!current) throw ApiError.notFound("User not found");
+
+  const users = await UserModel.find({
+    email: current.email,
+    isActive: true,
+    emailVerified: true,
+  }).select("companyId role");
+
+  const roleByCompany = new Map(users.map((u) => [u.companyId.toString(), u.role]));
+  const companies = await CompanyModel.find({
+    _id: { $in: users.map((u) => u.companyId) },
+    status: CompanyStatus.APPROVED,
+    isActive: true,
+  }).select("companyName logoUrl");
+
+  const data = companies.map((c) => ({
+    id: c._id.toString(),
+    companyName: c.companyName,
+    logoUrl: c.logoUrl,
+    role: roleByCompany.get(c._id.toString()),
+    isCurrent: c._id.toString() === current.companyId.toString(),
+  }));
+
+  return sendSuccess(res, { data });
+});
+
+/**
+ * Re-issues a session for the same person under a different company they belong
+ * to (matched by email). Revokes the current refresh token first.
+ */
+export const switchCompany = asyncHandler(async (req: Request, res: Response) => {
+  const principal = req.user;
+  if (!principal || principal.scope === PlatformScope.SUPER_ADMIN) {
+    throw ApiError.forbidden("Only company users can switch companies");
+  }
+
+  const targetCompanyId = req.params.companyId;
+  const current = await UserModel.findById(principal.sub).select("email");
+  if (!current) throw ApiError.notFound("User not found");
+
+  const targetUser = await UserModel.findOne({
+    email: current.email,
+    companyId: targetCompanyId,
+    isActive: true,
+    emailVerified: true,
+  });
+  if (!targetUser) throw ApiError.forbidden("You don't have access to that company");
+
+  const company = await CompanyModel.findById(targetCompanyId);
+  if (!company || company.status !== CompanyStatus.APPROVED || !company.isActive) {
+    throw ApiError.forbidden("That company is not available");
+  }
+
+  const presented = req.cookies?.refreshToken;
+  if (presented) await revokeRefreshToken(presented);
+
+  targetUser.lastLoginAt = new Date();
+  await targetUser.save();
+
+  const accessToken = await issueAuthTokens(res, {
+    sub: targetUser._id.toString(),
+    email: targetUser.email,
+    userType: UserType.USER,
+    companyId: targetUser.companyId.toString(),
+    role: targetUser.role,
+    ip: req.ip,
+  });
+
+  await recordAudit({
+    companyId: targetUser.companyId,
+    actorId: targetUser._id,
+    actorType: UserType.USER,
+    actorName: targetUser.name,
+    actorEmail: targetUser.email,
+    actorRole: targetUser.role,
+    action: "auth.switch_company",
+    status: "success",
+    method: req.method,
+    path: req.originalUrl.split("?")[0],
+    ipAddress: req.ip,
+    userAgent: req.headers["user-agent"],
+  });
+
+  return sendSuccess(res, {
+    message: "Switched company",
+    data: { accessToken, user: sanitizeUser(targetUser), company: companySummary(company) },
+  });
+});
+
 export const forgotPassword = asyncHandler(async (req: Request, res: Response) => {
   const { email } = req.body;
   const user = await UserModel.findOne({ email });

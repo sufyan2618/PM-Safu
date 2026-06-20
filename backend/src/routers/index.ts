@@ -14,6 +14,7 @@ import salarySlipRouter from "./salarySlip.router";
 import dashboardRouter from "./dashboard.router";
 import auditRouter from "./audit.router";
 import taxRateRouter from "./taxRate.router";
+import exportRouter from "./export.router";
 import { auditLogger } from "../middlewares/audit.middleware";
 
 const apiRouter = Router();
@@ -40,5 +41,6 @@ apiRouter.use("/salary-slips", salarySlipRouter);
 apiRouter.use("/dashboard", dashboardRouter);
 apiRouter.use("/audit-logs", auditRouter);
 apiRouter.use("/tax-rates", taxRateRouter);
+apiRouter.use("/export", exportRouter);
 
 export default apiRouter;

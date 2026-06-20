@@ -55,6 +55,9 @@ export const companyService = {
   async updatePayrollSettings(payload: {
     payDay?: number;
     defaultWorkingDaysPerMonth?: number;
+    taxEnabled?: boolean;
+    taxDeductionLabel?: string;
+    taxSlabs?: { upTo?: number; rate: number }[];
   }): Promise<void> {
     await axiosClient.patch(ENDPOINTS.company.payrollSettings, payload);
   },

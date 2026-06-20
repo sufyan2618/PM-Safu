@@ -48,7 +48,13 @@ export interface ApiCompany {
     defaultPaymentTermsDays: number;
     defaultTemplateId?: string;
   };
-  payrollSettings: { payDay: number; defaultWorkingDaysPerMonth: number };
+  payrollSettings: {
+    payDay: number;
+    defaultWorkingDaysPerMonth: number;
+    taxEnabled?: boolean;
+    taxDeductionLabel?: string;
+    taxSlabs?: { upTo?: number; rate: number }[];
+  };
   createdAt?: string;
   updatedAt?: string;
 }
