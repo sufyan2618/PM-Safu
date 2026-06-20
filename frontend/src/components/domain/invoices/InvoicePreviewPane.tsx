@@ -1,6 +1,7 @@
 import { formatCurrency } from '@/utils/formatCurrency';
 import { formatDate } from '@/utils/formatDate';
-import type { Client, InvoiceTemplate } from '@/types';
+import { useAuthStore } from '@/store/authStore';
+import type { Client, InvoiceTemplate, ItemColumn } from '@/types';
 
 export interface PreviewLineItem {
   description: string;
@@ -18,10 +19,37 @@ interface InvoicePreviewPaneProps {
   notes?: string;
   terms?: string;
   template?: InvoiceTemplate | null;
+  currency?: string;
+  /** Scale the preview (default 1). The designer uses 0.9 to fit in the panel. */
+  scale?: number;
+}
+
+const FONT_STACK: Record<string, string> = {
+  Inter: "'Inter', sans-serif",
+  Poppins: "'Poppins', sans-serif",
+  Roboto: "'Roboto', sans-serif",
+  Lato: "'Lato', sans-serif",
+  Merriweather: "'Merriweather', serif",
+  Custom: 'sans-serif',
+};
+
+function HLine({ color }: { color: string }) {
+  return <div className="w-full" style={{ height: 1, backgroundColor: `${color}33` }} />;
+}
+
+function SectionLabel({ text, color }: { text: string; color: string }) {
+  return (
+    <p
+      className="mb-1 text-[9px] font-semibold uppercase tracking-[0.06em]"
+      style={{ color: `${color}99` }}
+    >
+      {text}
+    </p>
+  );
 }
 
 export function InvoicePreviewPane({
-  invoiceNumber = 'INV-0000',
+  invoiceNumber = 'INV-0001',
   client,
   issueDate,
   dueDate,
@@ -29,132 +57,378 @@ export function InvoicePreviewPane({
   notes,
   terms,
   template,
+  currency = 'USD',
+  scale = 1,
 }: InvoicePreviewPaneProps) {
-  const accent = template?.accentColor ?? '#0E7C5A';
+  const company = useAuthStore((s) => s.company);
+
+  const design = template?.design;
+  const branding = design?.branding;
+  const typo = design?.typography;
+  const layout = design?.layout;
+  const sections = design?.sections;
+  const watermark = design?.watermark;
+
+  const primary = branding?.primaryColor ?? '#2563EB';
+  const accent = branding?.accentColor ?? '#0EA5E9';
+  const secondary = branding?.secondaryColor ?? '#1E293B';
+  const bgColor = branding?.backgroundColor ?? '#FFFFFF';
+  const textColor = branding?.textColor ?? '#111111';
+  const headerStyle = layout?.headerStyle ?? 'logo-left';
+  const fontFamily = FONT_STACK[typo?.fontFamily ?? 'Inter'] ?? FONT_STACK.Inter;
+  const baseSize = typo?.baseFontSize ?? 11;
+  const headingSize = typo?.headingFontSize ?? 22;
+  const baseTheme = template?.baseTheme ?? 'classic';
+
+  const logoUrl = branding?.logoUrl ?? company?.logoUrl;
+  const showLogo = branding?.showLogo !== false;
+  const companyName = company?.companyName ?? 'Your Company';
+
   const subtotal = lineItems.reduce((s, li) => s + li.quantity * li.unitPrice, 0);
   const taxTotal = lineItems.reduce(
     (s, li) => s + (li.quantity * li.unitPrice * (li.taxRate ?? 0)) / 100,
     0,
   );
   const total = subtotal + taxTotal;
+  const fmt = (v: number) => formatCurrency(v, currency);
+
+  const visibleColumns: ItemColumn[] = sections?.itemsTable?.columns?.filter((c) => c.visible) ?? [
+    { key: 'description', label: 'Description', visible: true, width: '40%' },
+    { key: 'quantity', label: 'Qty', visible: true, width: '12%' },
+    { key: 'unitPrice', label: 'Unit Price', visible: true, width: '16%' },
+    { key: 'amount', label: 'Amount', visible: true, width: '20%' },
+  ];
+
+  function cellValue(col: ItemColumn, li: PreviewLineItem, i: number) {
+    switch (col.key) {
+      case 'description': return li.description || 'Item description';
+      case 'quantity': return li.quantity;
+      case 'unitPrice': return fmt(li.unitPrice);
+      case 'taxRate': return li.taxRate != null ? `${li.taxRate}%` : '—';
+      case 'discount': return '—';
+      case 'amount': return fmt(li.quantity * li.unitPrice);
+      default: return '—';
+    }
+  }
+
+  const headerBg = sections?.itemsTable?.headerBackgroundColor ?? '#F1F5F9';
+  const zebraStripes = sections?.itemsTable?.zebraStripes ?? false;
+
+  // ── Banner style (Modern / logo-top-banner) ────────────────────────────────
+  const isBanner = headerStyle === 'logo-top-banner' || baseTheme === 'modern';
+  // ── Minimal style ─────────────────────────────────────────────────────────
+  const isMinimal = baseTheme === 'minimal';
+  // ── Bold style ────────────────────────────────────────────────────────────
+  const isBold = baseTheme === 'bold';
 
   return (
-    <div className="overflow-hidden rounded-xl border border-subtle bg-white text-[#0E1320] shadow-card">
-      <div className="h-1.5" style={{ backgroundColor: accent }} />
-      <div className="p-6 sm:p-8">
-        <div className="flex items-start justify-between">
-          <div>
-            <div
-              className="flex h-9 w-9 items-center justify-center rounded-lg text-white"
-              style={{ backgroundColor: accent }}
-            >
-              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                <path
-                  d="M3 4.5h12M3 9h12M3 13.5h7"
-                  stroke="white"
-                  strokeWidth="1.75"
-                  strokeLinecap="round"
-                />
-              </svg>
-            </div>
-            <p className="mt-2 text-[15px] font-semibold">Northwind Trading Co.</p>
-            <p className="text-[11px] text-[#4B5468]">123 Market Street, San Francisco, CA</p>
+    <div
+      className="relative overflow-hidden rounded-xl border border-subtle shadow-card"
+      style={{
+        fontFamily,
+        fontSize: baseSize,
+        color: textColor,
+        backgroundColor: bgColor,
+        transform: scale !== 1 ? `scale(${scale})` : undefined,
+        transformOrigin: scale !== 1 ? 'top left' : undefined,
+        width: scale !== 1 ? `${100 / scale}%` : undefined,
+      }}
+    >
+      {/* Watermark */}
+      {watermark?.enabled && watermark.text && (
+        <div
+          className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden"
+          style={{ zIndex: 10 }}
+        >
+          <span
+            className="select-none text-[72px] font-bold uppercase tracking-widest"
+            style={{
+              color: secondary,
+              opacity: watermark.opacity ?? 0.08,
+              transform: 'rotate(-30deg)',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {watermark.text}
+          </span>
+        </div>
+      )}
+
+      {/* ── BANNER HEADER (Modern) ─────────────────────────────────────────── */}
+      {isBanner && (
+        <div
+          className="flex items-center justify-between px-8 py-5"
+          style={{ backgroundColor: primary }}
+        >
+          <div className="flex items-center gap-3">
+            {showLogo && logoUrl ? (
+              <img src={logoUrl} alt="Logo" className="h-10 w-10 rounded-lg object-contain bg-white/10 p-1" />
+            ) : showLogo ? (
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/20 text-white font-bold text-lg">
+                {companyName.charAt(0)}
+              </div>
+            ) : null}
+            <span className="font-semibold text-white" style={{ fontSize: baseSize + 2 }}>
+              {companyName}
+            </span>
           </div>
-          <div className="text-right">
-            <p className="text-[20px] font-semibold uppercase tracking-wide" style={{ color: accent }}>
+          <div className="text-right text-white">
+            <div className="font-bold uppercase tracking-widest" style={{ fontSize: headingSize * 0.6 }}>
               Invoice
-            </p>
-            <p className="font-data text-[12px] text-[#4B5468]">{invoiceNumber}</p>
+            </div>
+            <div className="font-mono opacity-80" style={{ fontSize: baseSize - 1 }}>
+              {invoiceNumber}
+            </div>
           </div>
         </div>
+      )}
 
-        <div className="mt-6 flex justify-between gap-6 text-[12px]">
-          <div>
-            <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-[#8A92A3]">
-              Bill to
-            </p>
-            <p className="font-medium">{client?.name ?? 'Select a client'}</p>
-            {client?.companyName && <p className="text-[#4B5468]">{client.companyName}</p>}
-            {client?.email && <p className="text-[#4B5468]">{client.email}</p>}
+      {/* ── Classic / Minimal / Bold top bar ──────────────────────────────── */}
+      {!isBanner && (
+        <>
+          {!isMinimal && (
+            <div className="h-1.5 w-full" style={{ backgroundColor: isBold ? accent : primary }} />
+          )}
+          <div className="flex items-start justify-between px-7 pt-6 pb-2">
+            {/* Logo area */}
+            <div className="flex items-center gap-3">
+              {showLogo && logoUrl ? (
+                <img
+                  src={logoUrl}
+                  alt="Logo"
+                  className="object-contain rounded"
+                  style={{ height: 36, maxWidth: 100 }}
+                />
+              ) : showLogo ? (
+                <div
+                  className="flex items-center justify-center rounded-lg text-white font-bold"
+                  style={{
+                    width: 36,
+                    height: 36,
+                    backgroundColor: isBold ? accent : primary,
+                    fontSize: baseSize + 4,
+                  }}
+                >
+                  {companyName.charAt(0)}
+                </div>
+              ) : null}
+              {headerStyle === 'logo-left' || !logoUrl ? (
+                <div>
+                  <p className="font-semibold" style={{ color: secondary, fontSize: baseSize + 1 }}>
+                    {companyName}
+                  </p>
+                  {company?.address && (
+                    <p style={{ fontSize: baseSize - 1, color: `${secondary}88` }}>
+                      {[company.address.city, company.address.country].filter(Boolean).join(', ')}
+                    </p>
+                  )}
+                </div>
+              ) : null}
+            </div>
+
+            {/* Invoice title right */}
+            <div className="text-right">
+              <p
+                className="font-bold uppercase tracking-wide"
+                style={{
+                  fontSize: headingSize * 0.55,
+                  color: isBold ? accent : primary,
+                }}
+              >
+                {isMinimal ? 'Invoice' : 'INVOICE'}
+              </p>
+              <p className="font-mono" style={{ fontSize: baseSize - 1, color: `${secondary}99` }}>
+                {invoiceNumber}
+              </p>
+            </div>
           </div>
-          <div className="text-right">
-            <p className="text-[#8A92A3]">Issued</p>
-            <p className="font-data">{issueDate ? formatDate(issueDate) : '—'}</p>
-            <p className="mt-1 text-[#8A92A3]">Due</p>
-            <p className="font-data">{dueDate ? formatDate(dueDate) : '—'}</p>
-          </div>
+        </>
+      )}
+
+      {/* ── Client + Meta ─────────────────────────────────────────────────── */}
+      {(sections?.clientInfo?.visible !== false || sections?.invoiceMeta?.visible !== false) && (
+        <div className="mx-7 mt-4 mb-4 flex justify-between gap-6" style={{ fontSize: baseSize }}>
+          {sections?.clientInfo?.visible !== false && (
+            <div>
+              <SectionLabel text={sections?.clientInfo?.label ?? 'Bill To'} color={primary} />
+              <p className="font-medium">{client?.name ?? 'Client Name'}</p>
+              {client?.companyName && (
+                <p style={{ color: `${textColor}99` }}>{client.companyName}</p>
+              )}
+              {client?.email && (
+                <p style={{ color: `${textColor}99` }}>{client.email}</p>
+              )}
+            </div>
+          )}
+          {sections?.invoiceMeta?.visible !== false && (
+            <div className="text-right shrink-0">
+              <div className="space-y-0.5">
+                <div>
+                  <span style={{ color: `${textColor}60`, fontSize: baseSize - 1 }}>Issued </span>
+                  <span className="font-mono" style={{ fontSize: baseSize - 1 }}>
+                    {issueDate ? formatDate(issueDate) : '—'}
+                  </span>
+                </div>
+                <div>
+                  <span style={{ color: `${textColor}60`, fontSize: baseSize - 1 }}>Due </span>
+                  <span className="font-mono" style={{ fontSize: baseSize - 1 }}>
+                    {dueDate ? formatDate(dueDate) : '—'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
+      )}
 
-        <table className="mt-6 w-full border-collapse text-[12px]">
-          <thead>
-            <tr style={{ borderBottom: `1px solid ${accent}33` }}>
-              <th className="py-2 text-left font-medium text-[#8A92A3]">Description</th>
-              <th className="py-2 text-right font-medium text-[#8A92A3]">Qty</th>
-              <th className="py-2 text-right font-medium text-[#8A92A3]">Price</th>
-              <th className="py-2 text-right font-medium text-[#8A92A3]">Amount</th>
-            </tr>
-          </thead>
-          <tbody>
-            {lineItems.length === 0 ? (
-              <tr>
-                <td colSpan={4} className="py-6 text-center text-[#8A92A3]">
-                  Add line items to see them here
-                </td>
+      <div className="mx-7 mb-1">
+        <HLine color={primary} />
+      </div>
+
+      {/* ── Items Table ────────────────────────────────────────────────────── */}
+      {sections?.itemsTable?.visible !== false && (
+        <div className="mx-7 mt-3">
+          <table className="w-full border-collapse" style={{ fontSize: baseSize - 0.5 }}>
+            <thead>
+              <tr style={{ backgroundColor: isMinimal ? 'transparent' : headerBg }}>
+                {visibleColumns.map((col) => (
+                  <th
+                    key={col.key}
+                    className="py-1.5 font-semibold"
+                    style={{
+                      textAlign: col.key === 'description' ? 'left' : 'right',
+                      width: col.width,
+                      paddingLeft: col.key === 'description' ? 6 : 0,
+                      paddingRight: 6,
+                      color: `${textColor}70`,
+                      borderBottom: `1px solid ${primary}44`,
+                      fontSize: baseSize - 2,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.04em',
+                    }}
+                  >
+                    {col.label}
+                  </th>
+                ))}
               </tr>
-            ) : (
-              lineItems.map((li, i) => (
-                <tr key={i} className="border-b border-[#E4E7EC]">
-                  <td className="py-2 pr-2">{li.description || 'Item description'}</td>
-                  <td className="py-2 text-right font-data">{li.quantity}</td>
-                  <td className="py-2 text-right font-data">{formatCurrency(li.unitPrice)}</td>
-                  <td className="py-2 text-right font-data">
-                    {formatCurrency(li.quantity * li.unitPrice)}
+            </thead>
+            <tbody>
+              {lineItems.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={visibleColumns.length}
+                    className="py-5 text-center"
+                    style={{ color: `${textColor}50` }}
+                  >
+                    Add line items to see them here
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : (
+                lineItems.map((li, i) => (
+                  <tr
+                    key={i}
+                    style={{
+                      backgroundColor: zebraStripes && i % 2 === 1 ? `${primary}08` : 'transparent',
+                      borderBottom: `1px solid ${primary}18`,
+                    }}
+                  >
+                    {visibleColumns.map((col) => (
+                      <td
+                        key={col.key}
+                        className="py-1.5"
+                        style={{
+                          textAlign: col.key === 'description' ? 'left' : 'right',
+                          paddingLeft: col.key === 'description' ? 6 : 0,
+                          paddingRight: 6,
+                          fontVariantNumeric: col.key !== 'description' ? 'tabular-nums' : undefined,
+                        }}
+                      >
+                        {cellValue(col, li, i)}
+                      </td>
+                    ))}
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
 
-        <div className="mt-4 flex justify-end">
-          <dl className="w-52 space-y-1 text-[12px]">
+      {/* ── Summary ───────────────────────────────────────────────────────── */}
+      {sections?.summary?.visible !== false && (
+        <div className="mx-7 mt-3 flex justify-end">
+          <dl className="w-44 space-y-0.5" style={{ fontSize: baseSize - 0.5 }}>
             <div className="flex justify-between">
-              <dt className="text-[#4B5468]">Subtotal</dt>
-              <dd className="font-data">{formatCurrency(subtotal)}</dd>
+              <dt style={{ color: `${textColor}70` }}>Subtotal</dt>
+              <dd className="font-mono">{fmt(subtotal)}</dd>
             </div>
-            <div className="flex justify-between">
-              <dt className="text-[#4B5468]">Tax</dt>
-              <dd className="font-data">{formatCurrency(taxTotal)}</dd>
-            </div>
+            {taxTotal > 0 && (
+              <div className="flex justify-between">
+                <dt style={{ color: `${textColor}70` }}>Tax</dt>
+                <dd className="font-mono">{fmt(taxTotal)}</dd>
+              </div>
+            )}
             <div
-              className="flex justify-between border-t pt-1 text-[14px] font-semibold"
-              style={{ borderColor: `${accent}33` }}
+              className="flex justify-between border-t pt-1 font-semibold"
+              style={{ borderColor: `${primary}33`, fontSize: baseSize + 1 }}
             >
               <dt>Total</dt>
-              <dd className="font-data" style={{ color: accent }}>
-                {formatCurrency(total)}
+              <dd className="font-mono" style={{ color: primary }}>
+                {fmt(total)}
               </dd>
             </div>
           </dl>
         </div>
+      )}
 
-        {(notes || terms) && (
-          <div className="mt-6 space-y-2 border-t border-[#E4E7EC] pt-4 text-[11px] text-[#4B5468]">
-            {notes && (
-              <p>
-                <span className="font-medium text-[#0E1320]">Notes: </span>
-                {notes}
-              </p>
-            )}
-            {terms && (
-              <p>
-                <span className="font-medium text-[#0E1320]">Terms: </span>
-                {terms}
-              </p>
-            )}
-          </div>
-        )}
-      </div>
+      {/* ── Notes / Terms / Footer ───────────────────────────────────────── */}
+      {(sections?.notes?.visible !== false ||
+        sections?.terms?.visible !== false ||
+        sections?.footer?.visible !== false) && (
+        <div
+          className="mx-7 mt-5 mb-6 space-y-2 border-t pt-4"
+          style={{ borderColor: `${primary}22`, fontSize: baseSize - 1 }}
+        >
+          {sections?.notes?.visible !== false && notes && (
+            <p>
+              <span className="font-semibold" style={{ color: secondary }}>
+                {sections?.notes?.label ?? 'Notes'}:{' '}
+              </span>
+              <span style={{ color: `${textColor}80` }}>{notes}</span>
+            </p>
+          )}
+          {sections?.terms?.visible !== false && terms && (
+            <p>
+              <span className="font-semibold" style={{ color: secondary }}>
+                {sections?.terms?.label ?? 'Terms & Conditions'}:{' '}
+              </span>
+              <span style={{ color: `${textColor}80` }}>{terms}</span>
+            </p>
+          )}
+          {sections?.paymentInstructions?.visible && sections.paymentInstructions.content && (
+            <p>
+              <span className="font-semibold" style={{ color: secondary }}>Payment: </span>
+              <span style={{ color: `${textColor}80` }}>{sections.paymentInstructions.content}</span>
+            </p>
+          )}
+          {sections?.footer?.visible !== false && sections?.footer?.content && (
+            <p className="pt-1" style={{ color: `${textColor}50`, fontSize: baseSize - 2 }}>
+              {sections.footer.content}
+            </p>
+          )}
+          {sections?.signature?.visible && (
+            <div className="mt-4 flex flex-col gap-1">
+              <div className="h-8 w-24 border-b" style={{ borderColor: `${primary}44` }} />
+              {sections.signature.signatoryName && (
+                <p className="font-medium" style={{ fontSize: baseSize - 1 }}>{sections.signature.signatoryName}</p>
+              )}
+              {sections.signature.signatoryTitle && (
+                <p style={{ fontSize: baseSize - 2, color: `${textColor}60` }}>{sections.signature.signatoryTitle}</p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

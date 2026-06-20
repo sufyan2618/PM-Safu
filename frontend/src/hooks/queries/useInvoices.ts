@@ -35,6 +35,49 @@ export function useInvoiceTemplates() {
   return useQuery({ queryKey: ['invoice-templates'], queryFn: invoiceService.templates });
 }
 
+export function useCreateTemplate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: Parameters<typeof invoiceService.createTemplate>[0]) =>
+      invoiceService.createTemplate(payload),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['invoice-templates'] }),
+  });
+}
+
+export function useUpdateTemplate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: Parameters<typeof invoiceService.updateTemplate>[1] }) =>
+      invoiceService.updateTemplate(id, patch),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['invoice-templates'] }),
+  });
+}
+
+export function useCloneTemplate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, name }: { id: string; name?: string }) =>
+      invoiceService.cloneTemplate(id, name),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['invoice-templates'] }),
+  });
+}
+
+export function useSetDefaultTemplate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => invoiceService.setDefaultTemplate(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['invoice-templates'] }),
+  });
+}
+
+export function useDeleteTemplate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => invoiceService.deleteTemplate(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['invoice-templates'] }),
+  });
+}
+
 export function useCreateInvoice() {
   const qc = useQueryClient();
   return useMutation({

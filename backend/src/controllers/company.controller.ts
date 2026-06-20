@@ -31,6 +31,11 @@ export const setupCompany = asyncHandler(async (req: Request, res: Response) => 
         "Please provide legal name, city, country and currency before completing onboarding",
       );
     }
+    if (!company.logoUrl) {
+      throw ApiError.badRequest(
+        "Please upload your company logo before completing onboarding",
+      );
+    }
     company.onboardingCompleted = true;
   }
 

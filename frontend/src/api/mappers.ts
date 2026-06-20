@@ -198,25 +198,90 @@ export function mapInvoice(dto: ApiInvoice): Invoice {
   };
 }
 
-const THEME_TO_LAYOUT: Record<ApiInvoiceTemplate['baseTheme'], InvoiceTemplate['layout']> = {
-  classic: 'classic',
-  modern: 'modern',
-  minimal: 'minimal',
-  bold: 'modern',
-  custom: 'minimal',
-};
+import type {
+  InvoiceDesign,
+  InvoiceDesignBranding,
+  InvoiceDesignLayout,
+  InvoiceDesignSections,
+  InvoiceDesignTypography,
+  ItemColumn,
+} from '@/types/invoice.types';
+
+const DEFAULT_COLUMNS: ItemColumn[] = [
+  { key: 'description', label: 'Description', visible: true, width: '40%' },
+  { key: 'quantity', label: 'Qty', visible: true, width: '12%' },
+  { key: 'unitPrice', label: 'Unit Price', visible: true, width: '16%' },
+  { key: 'taxRate', label: 'Tax %', visible: true, width: '12%' },
+  { key: 'discount', label: 'Disc.', visible: true, width: '10%' },
+  { key: 'amount', label: 'Amount', visible: true, width: '20%' },
+];
+
+function mapDesign(dto: ApiInvoiceTemplate): InvoiceDesign {
+  const b = dto.design?.branding ?? {};
+  const t = dto.design?.typography ?? {};
+  const l = dto.design?.layout ?? {};
+  const s = dto.design?.sections ?? {};
+  const w = dto.design?.watermark ?? {};
+
+  const branding: InvoiceDesignBranding = {
+    logoUrl: b.logoUrl,
+    showLogo: b.showLogo ?? true,
+    primaryColor: b.primaryColor ?? '#2563EB',
+    secondaryColor: b.secondaryColor ?? '#1E293B',
+    accentColor: b.accentColor ?? '#0EA5E9',
+    backgroundColor: b.backgroundColor ?? '#FFFFFF',
+    textColor: b.textColor ?? '#111111',
+  };
+
+  const layout: InvoiceDesignLayout = {
+    pageSize: (l.pageSize as 'A4' | 'Letter') ?? 'A4',
+    orientation: (l.orientation as 'portrait' | 'landscape') ?? 'portrait',
+    margins: l.margins ?? { top: 40, right: 40, bottom: 40, left: 40 },
+    headerStyle: (l.headerStyle as InvoiceDesignLayout['headerStyle']) ?? 'logo-left',
+  };
+
+  const typography: InvoiceDesignTypography = {
+    fontFamily: (t.fontFamily as InvoiceDesignTypography['fontFamily']) ?? 'Inter',
+    customFontUrl: t.customFontUrl,
+    baseFontSize: t.baseFontSize ?? 11,
+    headingFontSize: t.headingFontSize ?? 22,
+  };
+
+  const sections: InvoiceDesignSections = {
+    companyInfo: { visible: s.companyInfo?.visible ?? true, order: s.companyInfo?.order ?? 1, fields: s.companyInfo?.fields ?? ['name', 'address', 'email', 'phone'] },
+    clientInfo: { visible: s.clientInfo?.visible ?? true, order: s.clientInfo?.order ?? 2, label: s.clientInfo?.label ?? 'Bill To' },
+    invoiceMeta: { visible: s.invoiceMeta?.visible ?? true, order: s.invoiceMeta?.order ?? 3, fields: s.invoiceMeta?.fields ?? ['invoiceNumber', 'issueDate', 'dueDate'] },
+    itemsTable: {
+      visible: s.itemsTable?.visible ?? true,
+      order: s.itemsTable?.order ?? 4,
+      columns: (s.itemsTable?.columns as ItemColumn[] | undefined) ?? DEFAULT_COLUMNS,
+      zebraStripes: s.itemsTable?.zebraStripes ?? false,
+      headerBackgroundColor: s.itemsTable?.headerBackgroundColor ?? '#F1F5F9',
+    },
+    summary: { visible: s.summary?.visible ?? true, order: s.summary?.order ?? 5, fields: s.summary?.fields ?? ['subTotal', 'tax', 'grandTotal'] },
+    notes: { visible: s.notes?.visible ?? true, order: s.notes?.order ?? 6, label: s.notes?.label ?? 'Notes' },
+    terms: { visible: s.terms?.visible ?? true, order: s.terms?.order ?? 7, label: s.terms?.label ?? 'Terms & Conditions' },
+    paymentInstructions: { visible: s.paymentInstructions?.visible ?? false, order: s.paymentInstructions?.order ?? 8, content: s.paymentInstructions?.content ?? '' },
+    signature: { visible: s.signature?.visible ?? false, order: s.signature?.order ?? 9, signatoryName: s.signature?.signatoryName, signatoryTitle: s.signature?.signatoryTitle },
+    footer: { visible: s.footer?.visible ?? true, order: s.footer?.order ?? 10, content: s.footer?.content ?? 'Thank you for your business' },
+  };
+
+  return {
+    layout,
+    branding,
+    typography,
+    sections,
+    watermark: { enabled: w.enabled ?? false, text: w.text ?? '', opacity: w.opacity ?? 0.1 },
+  };
+}
 
 export function mapInvoiceTemplate(dto: ApiInvoiceTemplate): InvoiceTemplate {
-  const branding = dto.design?.branding ?? {};
   return {
     id: dto._id,
     name: dto.name,
-    primaryColor: branding.primaryColor ?? '#0E1320',
-    accentColor: branding.accentColor ?? '#0E7C5A',
-    fontFamily: dto.design?.typography?.fontFamily ?? 'Inter',
-    logoUrl: branding.logoUrl,
-    layout: THEME_TO_LAYOUT[dto.baseTheme] ?? 'classic',
+    baseTheme: dto.baseTheme,
     isDefault: dto.isDefault,
+    design: mapDesign(dto),
   };
 }
 

@@ -1,7 +1,8 @@
+import { useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate } from 'react-router-dom';
-import { Building2, Check } from 'lucide-react';
+import { Building2, Check, ImagePlus, X } from 'lucide-react';
 import { Brand } from '@/components/layout/Brand';
 import { Card, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -26,6 +27,10 @@ export function OnboardingPage() {
   const company = useAuthStore((s) => s.company);
   const setCompany = useAuthStore((s) => s.setCompany);
 
+  const [logoUrl, setLogoUrl] = useState<string | undefined>(company?.logoUrl);
+  const [logoPreview, setLogoPreview] = useState<string | undefined>(company?.logoUrl);
+  const [logoUploading, setLogoUploading] = useState(false);
+
   const {
     register,
     handleSubmit,
@@ -44,7 +49,32 @@ export function OnboardingPage() {
   const currency = useWatch({ control, name: 'currency' });
   const fiscalMonth = useWatch({ control, name: 'fiscalYearStartMonth' });
 
+  async function handleLogoSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('File too large', 'Logo must be under 5 MB.');
+      return;
+    }
+    setLogoPreview(URL.createObjectURL(file));
+    setLogoUploading(true);
+    try {
+      const result = await companyService.uploadLogo(file);
+      setLogoUrl(result.logoUrl);
+      toast.success('Logo uploaded');
+    } catch {
+      toast.error('Upload failed', 'Could not upload logo. Please try again.');
+      setLogoPreview(undefined);
+    } finally {
+      setLogoUploading(false);
+    }
+  }
+
   async function onSubmit(values: OnboardingFormValues) {
+    if (!logoUrl) {
+      toast.error('Logo required', 'Please upload your company logo before continuing.');
+      return;
+    }
     try {
       const updated = await companyService.setup({
         legalName: values.legalName,
@@ -104,6 +134,62 @@ export function OnboardingPage() {
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+          {/* Logo upload — required */}
+          <Card>
+            <CardHeader
+              title="Company logo"
+              description="Used on invoices, salary slips and your dashboard. Required."
+              ruled
+            />
+            <div className="flex items-start gap-5">
+              <label className="group relative flex-shrink-0 cursor-pointer">
+                <div className="relative flex h-24 w-24 items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-strong bg-sunken transition-colors hover:border-accent-600 hover:bg-accent-100">
+                  {logoPreview ? (
+                    <img src={logoPreview} alt="Logo preview" className="h-full w-full object-contain p-1" />
+                  ) : (
+                    <span className="flex flex-col items-center gap-1">
+                      <ImagePlus size={22} className="text-ink-400" strokeWidth={1.5} />
+                      <span className="text-[10px] text-ink-400">Upload</span>
+                    </span>
+                  )}
+                  {logoUploading && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-white/70">
+                      <span className="h-5 w-5 animate-spin rounded-full border-2 border-accent-600 border-t-transparent" />
+                    </div>
+                  )}
+                </div>
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                  className="sr-only"
+                  onChange={handleLogoSelect}
+                />
+              </label>
+              <div className="min-w-0 flex-1 pt-1">
+                <p className="text-body-sm font-medium text-ink-900">
+                  {logoUrl ? 'Logo uploaded' : 'No logo yet'}
+                </p>
+                <p className="mt-0.5 text-caption text-ink-400">
+                  PNG, JPG, SVG or WEBP · up to 5 MB · recommended 400×400 px
+                </p>
+                {logoUrl && (
+                  <button
+                    type="button"
+                    onClick={() => { setLogoUrl(undefined); setLogoPreview(undefined); }}
+                    className="mt-2 inline-flex items-center gap-1 text-caption text-danger-600 hover:underline"
+                  >
+                    <X size={12} /> Remove
+                  </button>
+                )}
+                {!logoUrl && (
+                  <p className="mt-2 text-caption font-medium text-danger-600">
+                    Logo is required to complete setup
+                  </p>
+                )}
+              </div>
+            </div>
+          </Card>
+
           <Card>
             <CardHeader title="Company profile" ruled />
             <div className="space-y-4">
@@ -163,8 +249,17 @@ export function OnboardingPage() {
             </div>
           </Card>
 
-          <div className="flex justify-end pt-2">
-            <Button type="submit" size="lg" leftIcon={<Check size={16} />} isLoading={isSubmitting}>
+          <div className="flex items-center justify-end gap-3 pt-2">
+            {!logoUrl && (
+              <p className="text-caption text-ink-400">Upload a logo to continue</p>
+            )}
+            <Button
+              type="submit"
+              size="lg"
+              leftIcon={<Check size={16} />}
+              isLoading={isSubmitting || logoUploading}
+              disabled={!logoUrl}
+            >
               Complete setup
             </Button>
           </div>

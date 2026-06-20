@@ -109,18 +109,47 @@ export const invoiceService = {
     return data.data.map(mapInvoiceTemplate);
   },
 
-  async updateTemplate(id: string, template: InvoiceTemplate): Promise<InvoiceTemplate> {
-    const { data } = await axiosClient.patch<ApiEnvelope<ApiInvoiceTemplate>>(
-      ENDPOINTS.invoiceTemplates.update(id),
-      {
-        name: template.name,
-        baseTheme: template.layout,
-        design: {
-          branding: { primaryColor: template.primaryColor, accentColor: template.accentColor },
-          typography: { fontFamily: template.fontFamily },
-        },
-      },
+  async createTemplate(payload: { name: string; baseTheme: string; design: InvoiceTemplate['design'] }): Promise<InvoiceTemplate> {
+    const { data } = await axiosClient.post<ApiEnvelope<ApiInvoiceTemplate>>(
+      ENDPOINTS.invoiceTemplates.create,
+      { name: payload.name, baseTheme: payload.baseTheme, design: payload.design },
     );
     return mapInvoiceTemplate(data.data);
+  },
+
+  async updateTemplate(id: string, patch: { name?: string; baseTheme?: string; design?: InvoiceTemplate['design'] }): Promise<InvoiceTemplate> {
+    const { data } = await axiosClient.patch<ApiEnvelope<ApiInvoiceTemplate>>(
+      ENDPOINTS.invoiceTemplates.update(id),
+      patch,
+    );
+    return mapInvoiceTemplate(data.data);
+  },
+
+  async cloneTemplate(id: string, name?: string): Promise<InvoiceTemplate> {
+    const { data } = await axiosClient.post<ApiEnvelope<ApiInvoiceTemplate>>(
+      ENDPOINTS.invoiceTemplates.clone(id),
+      name ? { name } : {},
+    );
+    return mapInvoiceTemplate(data.data);
+  },
+
+  async setDefaultTemplate(id: string): Promise<InvoiceTemplate> {
+    const { data } = await axiosClient.patch<ApiEnvelope<ApiInvoiceTemplate>>(
+      ENDPOINTS.invoiceTemplates.setDefault(id),
+    );
+    return mapInvoiceTemplate(data.data);
+  },
+
+  async deleteTemplate(id: string): Promise<void> {
+    await axiosClient.delete(ENDPOINTS.invoiceTemplates.remove(id));
+  },
+
+  async previewDesign(design: InvoiceTemplate['design']): Promise<string> {
+    const { data } = await axiosClient.post<string>(
+      ENDPOINTS.invoiceTemplates.preview,
+      { design },
+      { responseType: 'text' },
+    );
+    return data;
   },
 };

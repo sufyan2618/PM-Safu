@@ -98,5 +98,6 @@ export function defaultPresets(options: PresetOptions = {}) {
     { name: "Classic", baseTheme: BaseTheme.CLASSIC, design: buildInvoiceDesign(BaseTheme.CLASSIC, options), isDefault: true },
     { name: "Modern", baseTheme: BaseTheme.MODERN, design: buildInvoiceDesign(BaseTheme.MODERN, options), isDefault: false },
     { name: "Minimal", baseTheme: BaseTheme.MINIMAL, design: buildInvoiceDesign(BaseTheme.MINIMAL, options), isDefault: false },
+    { name: "Bold", baseTheme: BaseTheme.BOLD, design: buildInvoiceDesign(BaseTheme.BOLD, options), isDefault: false },
   ];
 }

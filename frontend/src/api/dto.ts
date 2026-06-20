@@ -121,13 +121,46 @@ export interface ApiInvoiceTemplate {
   isDefault: boolean;
   baseTheme: 'classic' | 'modern' | 'minimal' | 'bold' | 'custom';
   design: {
+    layout?: {
+      pageSize?: string;
+      orientation?: string;
+      margins?: { top: number; right: number; bottom: number; left: number };
+      headerStyle?: string;
+    };
     branding?: {
       logoUrl?: string;
+      showLogo?: boolean;
       primaryColor?: string;
       secondaryColor?: string;
       accentColor?: string;
+      backgroundColor?: string;
+      textColor?: string;
     };
-    typography?: { fontFamily?: string };
+    typography?: {
+      fontFamily?: string;
+      customFontUrl?: string;
+      baseFontSize?: number;
+      headingFontSize?: number;
+    };
+    sections?: {
+      companyInfo?: { visible?: boolean; order?: number; fields?: string[] };
+      clientInfo?: { visible?: boolean; order?: number; label?: string };
+      invoiceMeta?: { visible?: boolean; order?: number; fields?: string[] };
+      itemsTable?: {
+        visible?: boolean;
+        order?: number;
+        columns?: { key: string; label: string; visible: boolean; width: string }[];
+        zebraStripes?: boolean;
+        headerBackgroundColor?: string;
+      };
+      summary?: { visible?: boolean; order?: number; fields?: string[] };
+      notes?: { visible?: boolean; order?: number; label?: string };
+      terms?: { visible?: boolean; order?: number; label?: string };
+      paymentInstructions?: { visible?: boolean; order?: number; content?: string };
+      signature?: { visible?: boolean; order?: number; signatureImageUrl?: string; signatoryName?: string; signatoryTitle?: string };
+      footer?: { visible?: boolean; order?: number; content?: string };
+    };
+    watermark?: { enabled?: boolean; text?: string; opacity?: number };
   };
   thumbnailUrl?: string;
   isArchived: boolean;
