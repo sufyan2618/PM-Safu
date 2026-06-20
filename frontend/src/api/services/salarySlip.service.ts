@@ -1,45 +1,41 @@
-import { axiosClient, USE_MOCKS } from '../axiosClient';
+import { axiosClient } from '../axiosClient';
 import { ENDPOINTS } from '../endpoints';
-import { delay, paginate } from '../mock/helpers';
-import { mockSalarySlips } from '../mock/mockData';
-import type { ApiResponse, Paginated, QueryParams, SalarySlip } from '@/types';
+import { mapSalarySlip, periodToMonthYear, toPaginated } from '../mappers';
+import { toQuery } from '../query';
+import type { ApiSalarySlip } from '../dto';
+import type { ApiEnvelope, Paginated, QueryParams, SalarySlip } from '@/types';
 
 interface SlipListParams extends QueryParams {
   period?: string;
   paymentStatus?: string;
   employeeId?: string;
+  payrollId?: string;
 }
 
 export const salarySlipService = {
   async list(params: SlipListParams = {}): Promise<Paginated<SalarySlip>> {
-    if (USE_MOCKS) {
-      let items = mockSalarySlips;
-      if (params.period) items = items.filter((s) => s.period === params.period);
-      if (params.paymentStatus) items = items.filter((s) => s.paymentStatus === params.paymentStatus);
-      if (params.employeeId) items = items.filter((s) => s.employeeId === params.employeeId);
-      const flattened = items.map((s) => ({ ...s, employeeName: s.employee?.name ?? '' }));
-      return delay(paginate(flattened, params, { searchFields: ['period'] }));
+    const { period, ...rest } = params;
+    const query = toQuery(rest);
+    if (period) {
+      const { month, year } = periodToMonthYear(period);
+      query.month = month;
+      query.year = year;
     }
-    const { data } = await axiosClient.get<ApiResponse<Paginated<SalarySlip>>>(
+    const { data } = await axiosClient.get<ApiEnvelope<ApiSalarySlip[]>>(
       ENDPOINTS.salarySlips.list,
-      { params },
+      { params: query },
     );
-    return data.data;
+    return toPaginated(data, mapSalarySlip);
   },
 
   async detail(id: string): Promise<SalarySlip> {
-    if (USE_MOCKS) {
-      const found = mockSalarySlips.find((s) => s.id === id) ?? mockSalarySlips[0];
-      return delay(found);
-    }
-    const { data } = await axiosClient.get<ApiResponse<SalarySlip>>(
+    const { data } = await axiosClient.get<ApiEnvelope<ApiSalarySlip>>(
       ENDPOINTS.salarySlips.detail(id),
     );
-    return data.data;
+    return mapSalarySlip(data.data);
   },
 
-  async markPaid(id: string): Promise<void> {
-    if (USE_MOCKS) return delay(undefined);
-    await axiosClient.patch(ENDPOINTS.salarySlips.markPaid(id));
+  async markPaid(id: string, paidOn?: string): Promise<void> {
+    await axiosClient.patch(ENDPOINTS.salarySlips.markPaid(id), { paidOn });
   },
 };

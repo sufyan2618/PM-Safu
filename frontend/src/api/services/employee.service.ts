@@ -1,11 +1,13 @@
-import { axiosClient, USE_MOCKS } from '../axiosClient';
+import { axiosClient } from '../axiosClient';
 import { ENDPOINTS } from '../endpoints';
-import { delay, paginate } from '../mock/helpers';
-import { mockDepartments, mockEmployees, mockSalarySlips } from '../mock/mockData';
+import { mapDepartment, mapEmployee, mapSalarySlip, toPaginated } from '../mappers';
+import { toQuery } from '../query';
+import type { ApiDepartment, ApiEmployee, ApiSalarySlip } from '../dto';
 import type {
-  ApiResponse,
+  ApiEnvelope,
   Department,
   Employee,
+  EmployeeStatus,
   Paginated,
   QueryParams,
   SalarySlip,
@@ -14,109 +16,102 @@ import type { DepartmentFormValues, EmployeeFormValues } from '@/constants/valid
 
 interface EmployeeListParams extends QueryParams {
   departmentId?: string;
-  status?: string;
+  status?: EmployeeStatus | string;
+}
+
+function splitName(name: string): { firstName: string; lastName: string } {
+  const parts = name.trim().split(/\s+/);
+  const firstName = parts.shift() ?? name;
+  return { firstName, lastName: parts.join(' ') || firstName };
+}
+
+function toEmployeeBody(payload: Partial<EmployeeFormValues>) {
+  const body: Record<string, unknown> = {
+    email: payload.email,
+    phone: payload.phone,
+    departmentId: payload.departmentId,
+    designation: payload.designation,
+    employmentType: payload.employmentType,
+    dateOfJoining: payload.joinDate,
+    employeeCode: payload.employeeCode || undefined,
+  };
+  if (payload.name) {
+    Object.assign(body, splitName(payload.name));
+  }
+  if (payload.baseSalary != null) {
+    body.salaryStructure = {
+      name: payload.name ? `${payload.name} structure` : 'Salary structure',
+      baseSalary: payload.baseSalary,
+      effectiveFrom: payload.joinDate,
+    };
+  }
+  return body;
 }
 
 export const employeeService = {
   async list(params: EmployeeListParams = {}): Promise<Paginated<Employee>> {
-    if (USE_MOCKS) {
-      let items = mockEmployees;
-      if (params.departmentId) items = items.filter((e) => e.departmentId === params.departmentId);
-      if (params.status) items = items.filter((e) => e.status === params.status);
-      return delay(paginate(items, params, { searchFields: ['name', 'email', 'employeeCode'] }));
-    }
-    const { data } = await axiosClient.get<ApiResponse<Paginated<Employee>>>(
-      ENDPOINTS.employees.list,
-      { params },
-    );
-    return data.data;
+    const { data } = await axiosClient.get<ApiEnvelope<ApiEmployee[]>>(ENDPOINTS.employees.list, {
+      params: toQuery(params),
+    });
+    return toPaginated(data, mapEmployee);
   },
 
   async detail(id: string): Promise<Employee> {
-    if (USE_MOCKS) {
-      const found = mockEmployees.find((e) => e.id === id);
-      if (!found) throw new Error('Employee not found');
-      return delay(found);
-    }
-    const { data } = await axiosClient.get<ApiResponse<Employee>>(ENDPOINTS.employees.detail(id));
-    return data.data;
+    const { data } = await axiosClient.get<ApiEnvelope<ApiEmployee>>(ENDPOINTS.employees.detail(id));
+    return mapEmployee(data.data);
   },
 
   async salarySlips(id: string): Promise<SalarySlip[]> {
-    if (USE_MOCKS) return delay(mockSalarySlips.filter((s) => s.employeeId === id));
-    const { data } = await axiosClient.get<ApiResponse<SalarySlip[]>>(
+    const { data } = await axiosClient.get<ApiEnvelope<ApiSalarySlip[]>>(
       ENDPOINTS.employees.salarySlips(id),
     );
-    return data.data;
+    return data.data.map(mapSalarySlip);
   },
 
   async create(payload: EmployeeFormValues): Promise<Employee> {
-    if (USE_MOCKS) {
-      return delay({
-        id: `emp_${Date.now()}`,
-        ...payload,
-        departmentName: mockDepartments.find((d) => d.id === payload.departmentId)?.name,
-        status: 'active',
-        isActive: true,
-      } as Employee);
-    }
-    const { data } = await axiosClient.post<ApiResponse<Employee>>(
+    const { data } = await axiosClient.post<ApiEnvelope<ApiEmployee>>(
       ENDPOINTS.employees.create,
-      payload,
+      toEmployeeBody(payload),
     );
-    return data.data;
+    return mapEmployee(data.data);
   },
 
   async update(id: string, payload: Partial<EmployeeFormValues>): Promise<Employee> {
-    if (USE_MOCKS) {
-      const found = mockEmployees.find((e) => e.id === id)!;
-      return delay({ ...found, ...payload });
-    }
-    const { data } = await axiosClient.patch<ApiResponse<Employee>>(
+    const { data } = await axiosClient.patch<ApiEnvelope<ApiEmployee>>(
       ENDPOINTS.employees.update(id),
-      payload,
+      toEmployeeBody(payload),
     );
-    return data.data;
+    return mapEmployee(data.data);
   },
 
   async remove(id: string): Promise<void> {
-    if (USE_MOCKS) return delay(undefined);
     await axiosClient.delete(ENDPOINTS.employees.remove(id));
   },
 };
 
 export const departmentService = {
   async list(): Promise<Department[]> {
-    if (USE_MOCKS) return delay(mockDepartments);
-    const { data } = await axiosClient.get<ApiResponse<Department[]>>(ENDPOINTS.departments.list);
-    return data.data;
+    const { data } = await axiosClient.get<ApiEnvelope<ApiDepartment[]>>(ENDPOINTS.departments.list);
+    return data.data.map(mapDepartment);
   },
 
   async create(payload: DepartmentFormValues): Promise<Department> {
-    if (USE_MOCKS) {
-      return delay({ id: `dep_${Date.now()}`, ...payload, employeeCount: 0 } as Department);
-    }
-    const { data } = await axiosClient.post<ApiResponse<Department>>(
+    const { data } = await axiosClient.post<ApiEnvelope<ApiDepartment>>(
       ENDPOINTS.departments.create,
       payload,
     );
-    return data.data;
+    return mapDepartment(data.data);
   },
 
   async update(id: string, payload: Partial<DepartmentFormValues>): Promise<Department> {
-    if (USE_MOCKS) {
-      const found = mockDepartments.find((d) => d.id === id)!;
-      return delay({ ...found, ...payload });
-    }
-    const { data } = await axiosClient.patch<ApiResponse<Department>>(
+    const { data } = await axiosClient.patch<ApiEnvelope<ApiDepartment>>(
       ENDPOINTS.departments.update(id),
       payload,
     );
-    return data.data;
+    return mapDepartment(data.data);
   },
 
   async remove(id: string): Promise<void> {
-    if (USE_MOCKS) return delay(undefined);
     await axiosClient.delete(ENDPOINTS.departments.remove(id));
   },
 };

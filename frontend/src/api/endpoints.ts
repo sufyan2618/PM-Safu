@@ -2,6 +2,7 @@ export const ENDPOINTS = {
   auth: {
     login: '/auth/login',
     register: '/auth/register-company',
+    refresh: '/auth/refresh',
     logout: '/auth/logout',
     me: '/auth/me',
     forgotPassword: '/auth/forgot-password',
@@ -21,17 +22,22 @@ export const ENDPOINTS = {
     detail: (id: string) => `/invoices/${id}`,
     update: (id: string) => `/invoices/${id}`,
     remove: (id: string) => `/invoices/${id}`,
+    cancel: (id: string) => `/invoices/${id}/cancel`,
     send: (id: string) => `/invoices/${id}/send`,
     recordPayment: (id: string) => `/invoices/${id}/record-payment`,
     pdf: (id: string) => `/invoices/${id}/pdf`,
     publicShare: (token: string) => `/invoices/public/${token}`,
+    publicSharePdf: (token: string) => `/invoices/public/${token}/pdf`,
   },
   invoiceTemplates: {
     list: '/invoice-templates',
     create: '/invoice-templates',
     detail: (id: string) => `/invoice-templates/${id}`,
     update: (id: string) => `/invoice-templates/${id}`,
+    remove: (id: string) => `/invoice-templates/${id}`,
+    clone: (id: string) => `/invoice-templates/${id}/clone`,
     setDefault: (id: string) => `/invoice-templates/${id}/set-default`,
+    preview: '/invoice-templates/preview',
   },
   clients: {
     list: '/clients',
@@ -48,6 +54,7 @@ export const ENDPOINTS = {
     update: (id: string) => `/employees/${id}`,
     remove: (id: string) => `/employees/${id}`,
     salarySlips: (id: string) => `/employees/${id}/salary-slips`,
+    avatar: (id: string) => `/employees/${id}/avatar`,
   },
   departments: {
     list: '/departments',
@@ -56,12 +63,20 @@ export const ENDPOINTS = {
     update: (id: string) => `/departments/${id}`,
     remove: (id: string) => `/departments/${id}`,
   },
+  salaryStructures: {
+    list: '/salary-structures',
+    create: '/salary-structures',
+    detail: (id: string) => `/salary-structures/${id}`,
+    update: (id: string) => `/salary-structures/${id}`,
+    remove: (id: string) => `/salary-structures/${id}`,
+  },
   payroll: {
     list: '/payroll',
     process: '/payroll/process',
     detail: (id: string) => `/payroll/${id}`,
     slips: (id: string) => `/payroll/${id}/slips`,
     finalize: (id: string) => `/payroll/${id}/finalize`,
+    remove: (id: string) => `/payroll/${id}`,
     reports: '/payroll/reports/summary',
   },
   salarySlips: {
@@ -81,5 +96,7 @@ export const ENDPOINTS = {
     me: '/company/me',
     setup: '/company/setup',
     logo: '/company/logo',
+    invoiceSettings: '/company/invoice-settings',
+    payrollSettings: '/company/payroll-settings',
   },
 } as const;

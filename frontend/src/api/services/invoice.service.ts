@@ -1,13 +1,15 @@
-import { axiosClient, USE_MOCKS } from '../axiosClient';
+import { axiosClient } from '../axiosClient';
 import { ENDPOINTS } from '../endpoints';
-import { delay, paginate } from '../mock/helpers';
-import { mockInvoices, mockTemplates } from '../mock/mockData';
+import { mapInvoice, mapInvoiceTemplate, toPaginated } from '../mappers';
+import { toQuery } from '../query';
+import type { ApiInvoice, ApiInvoiceTemplate } from '../dto';
 import type {
-  ApiResponse,
+  ApiEnvelope,
   Invoice,
   InvoiceStatus,
   InvoiceTemplate,
   Paginated,
+  PaymentMethod,
   QueryParams,
 } from '@/types';
 import type { InvoiceFormValues } from '@/constants/validation.constants';
@@ -15,122 +17,110 @@ import type { InvoiceFormValues } from '@/constants/validation.constants';
 interface InvoiceListParams extends QueryParams {
   status?: InvoiceStatus;
   clientId?: string;
+  dateFrom?: string;
+  dateTo?: string;
 }
 
-function buildInvoice(payload: InvoiceFormValues): Invoice {
-  const lineItems = payload.lineItems.map((item, i) => {
-    const total = item.quantity * item.unitPrice;
-    return {
-      id: `li_new_${i}`,
+function toInvoiceBody(payload: InvoiceFormValues) {
+  return {
+    clientId: payload.clientId,
+    templateId: payload.templateId || undefined,
+    issueDate: payload.issueDate,
+    dueDate: payload.dueDate,
+    items: payload.lineItems.map((item) => ({
       description: item.description,
       quantity: item.quantity,
       unitPrice: item.unitPrice,
       taxRate: item.taxRate ?? 0,
-      total,
-    };
-  });
-  const subtotal = lineItems.reduce((s, li) => s + li.total, 0);
-  const taxTotal = lineItems.reduce((s, li) => s + (li.total * (li.taxRate ?? 0)) / 100, 0);
-  const total = subtotal + taxTotal;
-  return {
-    id: `inv_${Date.now()}`,
-    invoiceNumber: `INV-${Math.floor(1000 + Math.random() * 9000)}`,
-    clientId: payload.clientId,
-    status: 'draft',
-    issueDate: payload.issueDate,
-    dueDate: payload.dueDate,
-    lineItems,
-    subtotal,
-    taxTotal: Math.round(taxTotal * 100) / 100,
-    total: Math.round(total * 100) / 100,
-    amountPaid: 0,
-    amountDue: Math.round(total * 100) / 100,
-    currency: 'USD',
-    templateId: payload.templateId,
+    })),
     notes: payload.notes,
-    terms: payload.terms,
-    paymentHistory: [],
-    createdAt: new Date().toISOString(),
+    termsAndConditions: payload.terms,
   };
 }
 
 export const invoiceService = {
   async list(params: InvoiceListParams = {}): Promise<Paginated<Invoice>> {
-    if (USE_MOCKS) {
-      let items = mockInvoices;
-      if (params.status) items = items.filter((i) => i.status === params.status);
-      if (params.clientId) items = items.filter((i) => i.clientId === params.clientId);
-      return delay(paginate(items, params, { searchFields: ['invoiceNumber'] }));
-    }
-    const { data } = await axiosClient.get<ApiResponse<Paginated<Invoice>>>(
-      ENDPOINTS.invoices.list,
-      { params },
-    );
-    return data.data;
+    const { data } = await axiosClient.get<ApiEnvelope<ApiInvoice[]>>(ENDPOINTS.invoices.list, {
+      params: toQuery(params),
+    });
+    return toPaginated(data, mapInvoice);
   },
 
   async detail(id: string): Promise<Invoice> {
-    if (USE_MOCKS) {
-      const found = mockInvoices.find((i) => i.id === id);
-      if (!found) throw new Error('Invoice not found');
-      return delay(found);
-    }
-    const { data } = await axiosClient.get<ApiResponse<Invoice>>(ENDPOINTS.invoices.detail(id));
-    return data.data;
+    const { data } = await axiosClient.get<ApiEnvelope<ApiInvoice>>(ENDPOINTS.invoices.detail(id));
+    return mapInvoice(data.data);
   },
 
   async byShareToken(token: string): Promise<Invoice> {
-    if (USE_MOCKS) {
-      const found = mockInvoices.find((i) => i.shareToken === token) ?? mockInvoices[0];
-      return delay(found);
-    }
-    const { data } = await axiosClient.get<ApiResponse<Invoice>>(
+    const { data } = await axiosClient.get<ApiEnvelope<{ invoice: ApiInvoice }>>(
       ENDPOINTS.invoices.publicShare(token),
     );
-    return data.data;
+    return mapInvoice(data.data.invoice);
   },
 
   async create(payload: InvoiceFormValues): Promise<Invoice> {
-    if (USE_MOCKS) return delay(buildInvoice(payload));
-    const { data } = await axiosClient.post<ApiResponse<Invoice>>(
+    const { data } = await axiosClient.post<ApiEnvelope<ApiInvoice>>(
       ENDPOINTS.invoices.create,
-      payload,
+      toInvoiceBody(payload),
     );
-    return data.data;
+    return mapInvoice(data.data);
   },
 
   async update(id: string, payload: InvoiceFormValues): Promise<Invoice> {
-    if (USE_MOCKS) return delay({ ...buildInvoice(payload), id });
-    const { data } = await axiosClient.patch<ApiResponse<Invoice>>(
+    const { data } = await axiosClient.patch<ApiEnvelope<ApiInvoice>>(
       ENDPOINTS.invoices.update(id),
-      payload,
+      toInvoiceBody(payload),
     );
-    return data.data;
+    return mapInvoice(data.data);
   },
 
-  async send(id: string): Promise<void> {
-    if (USE_MOCKS) return delay(undefined);
-    await axiosClient.patch(ENDPOINTS.invoices.send(id));
+  async send(id: string): Promise<Invoice> {
+    const { data } = await axiosClient.patch<ApiEnvelope<ApiInvoice>>(ENDPOINTS.invoices.send(id));
+    return mapInvoice(data.data);
   },
 
   async recordPayment(
     id: string,
-    payload: { amount: number; method: string; reference?: string },
-  ): Promise<void> {
-    if (USE_MOCKS) return delay(undefined);
-    await axiosClient.post(ENDPOINTS.invoices.recordPayment(id), payload);
+    payload: { amount: number; method: PaymentMethod | string; reference?: string; paidOn?: string },
+  ): Promise<Invoice> {
+    const { data } = await axiosClient.post<ApiEnvelope<ApiInvoice>>(
+      ENDPOINTS.invoices.recordPayment(id),
+      payload,
+    );
+    return mapInvoice(data.data);
+  },
+
+  async cancel(id: string, reason?: string): Promise<Invoice> {
+    const { data } = await axiosClient.patch<ApiEnvelope<ApiInvoice>>(
+      ENDPOINTS.invoices.cancel(id),
+      { reason },
+    );
+    return mapInvoice(data.data);
   },
 
   async remove(id: string): Promise<void> {
-    if (USE_MOCKS) return delay(undefined);
     await axiosClient.delete(ENDPOINTS.invoices.remove(id));
   },
 
   async templates(): Promise<InvoiceTemplate[]> {
-    if (USE_MOCKS) return delay(mockTemplates);
-    const { data } = await axiosClient.get<ApiResponse<InvoiceTemplate[]>>(
+    const { data } = await axiosClient.get<ApiEnvelope<ApiInvoiceTemplate[]>>(
       ENDPOINTS.invoiceTemplates.list,
     );
-    return data.data;
+    return data.data.map(mapInvoiceTemplate);
+  },
+
+  async updateTemplate(id: string, template: InvoiceTemplate): Promise<InvoiceTemplate> {
+    const { data } = await axiosClient.patch<ApiEnvelope<ApiInvoiceTemplate>>(
+      ENDPOINTS.invoiceTemplates.update(id),
+      {
+        name: template.name,
+        baseTheme: template.layout,
+        design: {
+          branding: { primaryColor: template.primaryColor, accentColor: template.accentColor },
+          typography: { fontFamily: template.fontFamily },
+        },
+      },
+    );
+    return mapInvoiceTemplate(data.data);
   },
 };

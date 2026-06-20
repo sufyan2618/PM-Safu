@@ -1,14 +1,9 @@
-import { axiosClient, USE_MOCKS } from '../axiosClient';
+import { axiosClient } from '../axiosClient';
 import { ENDPOINTS } from '../endpoints';
-import { delay } from '../mock/helpers';
-import {
-  mockDashboardStats,
-  mockOutstandingClients,
-  mockPayrollTrend,
-  mockRevenueTrend,
-} from '../mock/mockData';
+import { mapOutstandingClient, mapOverview, mapPayrollTrend, mapRevenueTrend } from '../mappers';
+import type { ApiDashboardOverview, ApiOutstandingClient, ApiTrendPoint } from '../dto';
 import type {
-  ApiResponse,
+  ApiEnvelope,
   DashboardStats,
   OutstandingClient,
   PayrollTrendPoint,
@@ -17,34 +12,36 @@ import type {
 
 export const dashboardService = {
   async overview(): Promise<DashboardStats> {
-    if (USE_MOCKS) return delay(mockDashboardStats);
-    const { data } = await axiosClient.get<ApiResponse<DashboardStats>>(
+    const { data } = await axiosClient.get<ApiEnvelope<ApiDashboardOverview>>(
       ENDPOINTS.dashboard.overview,
     );
-    return data.data;
+    return mapOverview(data.data);
   },
 
   async revenueTrend(): Promise<RevenuePoint[]> {
-    if (USE_MOCKS) return delay(mockRevenueTrend);
-    const { data } = await axiosClient.get<ApiResponse<RevenuePoint[]>>(
-      ENDPOINTS.dashboard.revenueTrend,
-    );
-    return data.data;
+    const [revenue, payroll] = await Promise.all([
+      axiosClient.get<ApiEnvelope<ApiTrendPoint[]>>(ENDPOINTS.dashboard.revenueTrend, {
+        params: { months: 8 },
+      }),
+      axiosClient.get<ApiEnvelope<ApiTrendPoint[]>>(ENDPOINTS.dashboard.payrollTrend, {
+        params: { months: 8 },
+      }),
+    ]);
+    return mapRevenueTrend(revenue.data.data, payroll.data.data);
   },
 
   async payrollTrend(): Promise<PayrollTrendPoint[]> {
-    if (USE_MOCKS) return delay(mockPayrollTrend);
-    const { data } = await axiosClient.get<ApiResponse<PayrollTrendPoint[]>>(
+    const { data } = await axiosClient.get<ApiEnvelope<ApiTrendPoint[]>>(
       ENDPOINTS.dashboard.payrollTrend,
+      { params: { months: 6 } },
     );
-    return data.data;
+    return mapPayrollTrend(data.data);
   },
 
   async outstandingClients(): Promise<OutstandingClient[]> {
-    if (USE_MOCKS) return delay(mockOutstandingClients);
-    const { data } = await axiosClient.get<ApiResponse<OutstandingClient[]>>(
+    const { data } = await axiosClient.get<ApiEnvelope<ApiOutstandingClient[]>>(
       ENDPOINTS.dashboard.outstandingClients,
     );
-    return data.data;
+    return data.data.map(mapOutstandingClient);
   },
 };

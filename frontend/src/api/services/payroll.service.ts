@@ -1,59 +1,69 @@
-import { axiosClient, USE_MOCKS } from '../axiosClient';
+import { axiosClient } from '../axiosClient';
 import { ENDPOINTS } from '../endpoints';
-import { delay, paginate } from '../mock/helpers';
-import { mockPayrollRuns, mockSalarySlips } from '../mock/mockData';
-import type { ApiResponse, Paginated, PayrollRun, QueryParams, SalarySlip } from '@/types';
+import { mapPayroll, mapSalarySlip, periodToMonthYear, toPaginated } from '../mappers';
+import { toQuery } from '../query';
+import type { ApiPayroll, ApiSalarySlip } from '../dto';
+import type { ApiEnvelope, Paginated, PayrollRun, QueryParams, SalarySlip } from '@/types';
+
+interface PayrollListParams extends QueryParams {
+  year?: number;
+  status?: string;
+}
+
+type ProcessResponse =
+  | ApiPayroll
+  | { payrollId: string; status: 'processing'; queued: true };
 
 export const payrollService = {
-  async list(params: QueryParams = {}): Promise<Paginated<PayrollRun>> {
-    if (USE_MOCKS) return delay(paginate(mockPayrollRuns, params, { searchFields: ['period'] }));
-    const { data } = await axiosClient.get<ApiResponse<Paginated<PayrollRun>>>(
-      ENDPOINTS.payroll.list,
-      { params },
-    );
-    return data.data;
+  async list(params: PayrollListParams = {}): Promise<Paginated<PayrollRun>> {
+    const { data } = await axiosClient.get<ApiEnvelope<ApiPayroll[]>>(ENDPOINTS.payroll.list, {
+      params: toQuery(params),
+    });
+    return toPaginated(data, mapPayroll);
   },
 
   async detail(id: string): Promise<PayrollRun> {
-    if (USE_MOCKS) {
-      const found = mockPayrollRuns.find((p) => p.id === id) ?? mockPayrollRuns[0];
-      return delay(found);
-    }
-    const { data } = await axiosClient.get<ApiResponse<PayrollRun>>(ENDPOINTS.payroll.detail(id));
-    return data.data;
+    const { data } = await axiosClient.get<ApiEnvelope<ApiPayroll>>(ENDPOINTS.payroll.detail(id));
+    return mapPayroll(data.data);
   },
 
   async slips(id: string): Promise<SalarySlip[]> {
-    if (USE_MOCKS) return delay(mockSalarySlips.map((s) => ({ ...s, payrollRunId: id })));
-    const { data } = await axiosClient.get<ApiResponse<SalarySlip[]>>(ENDPOINTS.payroll.slips(id));
-    return data.data;
+    const { data } = await axiosClient.get<ApiEnvelope<ApiSalarySlip[]>>(
+      ENDPOINTS.payroll.slips(id),
+    );
+    return data.data.map(mapSalarySlip);
   },
 
-  async process(payload: { period: string; employeeIds?: string[] }): Promise<PayrollRun> {
-    if (USE_MOCKS) {
-      const gross = 116000;
-      const deductions = Math.round(gross * 0.18);
-      return delay({
-        id: `pr_${Date.now()}`,
-        period: payload.period,
-        status: 'completed',
-        totalEmployees: payload.employeeIds?.length ?? 11,
-        totalGross: gross,
-        totalDeductions: deductions,
-        totalNet: gross - deductions,
-        processedAt: new Date().toISOString(),
-        createdAt: new Date().toISOString(),
-      });
+  async process(payload: { period: string; employeeIds?: string[]; notes?: string }): Promise<PayrollRun> {
+    const { month, year } = periodToMonthYear(payload.period);
+    const { data } = await axiosClient.post<ApiEnvelope<ProcessResponse>>(ENDPOINTS.payroll.process, {
+      month,
+      year,
+      employeeIds: payload.employeeIds,
+      notes: payload.notes,
+    });
+
+    if ('_id' in data.data) {
+      return mapPayroll(data.data);
     }
-    const { data } = await axiosClient.post<ApiResponse<PayrollRun>>(
-      ENDPOINTS.payroll.process,
-      payload,
-    );
-    return data.data;
+    // Queued for background processing — surface a placeholder run.
+    return {
+      id: data.data.payrollId,
+      period: payload.period,
+      status: 'processing',
+      totalEmployees: payload.employeeIds?.length ?? 0,
+      totalGross: 0,
+      totalDeductions: 0,
+      totalNet: 0,
+      createdAt: new Date().toISOString(),
+    };
   },
 
   async finalize(id: string): Promise<void> {
-    if (USE_MOCKS) return delay(undefined);
     await axiosClient.patch(ENDPOINTS.payroll.finalize(id));
+  },
+
+  async remove(id: string): Promise<void> {
+    await axiosClient.delete(ENDPOINTS.payroll.remove(id));
   },
 };

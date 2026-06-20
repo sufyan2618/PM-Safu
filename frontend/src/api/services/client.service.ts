@@ -1,66 +1,62 @@
-import { axiosClient, USE_MOCKS } from '../axiosClient';
+import { axiosClient } from '../axiosClient';
 import { ENDPOINTS } from '../endpoints';
-import { delay, paginate } from '../mock/helpers';
-import { mockClients, mockInvoices } from '../mock/mockData';
-import type { ApiResponse, Client, Invoice, Paginated, QueryParams } from '@/types';
+import { mapClient, mapInvoice, toPaginated } from '../mappers';
+import { toQuery } from '../query';
+import type { ApiClient, ApiInvoice } from '../dto';
+import type { ApiEnvelope, Client, Invoice, Paginated, QueryParams } from '@/types';
 import type { ClientFormValues } from '@/constants/validation.constants';
+
+function toBody(payload: Partial<ClientFormValues>) {
+  return {
+    name: payload.name,
+    email: payload.email,
+    phone: payload.phone,
+    companyNameOfClient: payload.companyName,
+    billingAddress: payload.address ? { line1: payload.address } : undefined,
+    taxId: payload.taxId,
+    notes: payload.notes,
+  };
+}
 
 export const clientService = {
   async list(params: QueryParams = {}): Promise<Paginated<Client>> {
-    if (USE_MOCKS) {
-      return delay(paginate(mockClients, params, { searchFields: ['name', 'email', 'companyName'] }));
-    }
-    const { data } = await axiosClient.get<ApiResponse<Paginated<Client>>>(ENDPOINTS.clients.list, {
-      params,
+    const { data } = await axiosClient.get<ApiEnvelope<ApiClient[]>>(ENDPOINTS.clients.list, {
+      params: toQuery(params),
     });
-    return data.data;
+    return toPaginated(data, mapClient);
   },
 
   async detail(id: string): Promise<Client> {
-    if (USE_MOCKS) {
-      const found = mockClients.find((c) => c.id === id);
-      if (!found) throw new Error('Client not found');
-      return delay(found);
-    }
-    const { data } = await axiosClient.get<ApiResponse<Client>>(ENDPOINTS.clients.detail(id));
-    return data.data;
+    const { data } = await axiosClient.get<ApiEnvelope<{ client: ApiClient }>>(
+      ENDPOINTS.clients.detail(id),
+    );
+    return mapClient(data.data.client);
   },
 
   async invoices(id: string): Promise<Invoice[]> {
-    if (USE_MOCKS) return delay(mockInvoices.filter((i) => i.clientId === id));
-    const { data } = await axiosClient.get<ApiResponse<Invoice[]>>(ENDPOINTS.clients.invoices(id));
-    return data.data;
+    const { data } = await axiosClient.get<ApiEnvelope<ApiInvoice[]>>(
+      ENDPOINTS.clients.invoices(id),
+    );
+    return data.data.map(mapInvoice);
   },
 
   async create(payload: ClientFormValues): Promise<Client> {
-    if (USE_MOCKS) {
-      return delay({
-        id: `cli_${Date.now()}`,
-        ...payload,
-        totalInvoiced: 0,
-        outstandingBalance: 0,
-        isActive: true,
-        createdAt: new Date().toISOString(),
-      } as Client);
-    }
-    const { data } = await axiosClient.post<ApiResponse<Client>>(ENDPOINTS.clients.create, payload);
-    return data.data;
+    const { data } = await axiosClient.post<ApiEnvelope<ApiClient>>(
+      ENDPOINTS.clients.create,
+      toBody(payload),
+    );
+    return mapClient(data.data);
   },
 
   async update(id: string, payload: Partial<ClientFormValues>): Promise<Client> {
-    if (USE_MOCKS) {
-      const found = mockClients.find((c) => c.id === id)!;
-      return delay({ ...found, ...payload });
-    }
-    const { data } = await axiosClient.patch<ApiResponse<Client>>(
+    const { data } = await axiosClient.patch<ApiEnvelope<ApiClient>>(
       ENDPOINTS.clients.update(id),
-      payload,
+      toBody(payload),
     );
-    return data.data;
+    return mapClient(data.data);
   },
 
   async remove(id: string): Promise<void> {
-    if (USE_MOCKS) return delay(undefined);
     await axiosClient.delete(ENDPOINTS.clients.remove(id));
   },
 };
