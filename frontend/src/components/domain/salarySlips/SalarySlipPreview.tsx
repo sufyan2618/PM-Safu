@@ -1,92 +1,160 @@
 import { formatCurrency } from '@/utils/formatCurrency';
-import { formatPeriod } from '@/utils/formatDate';
+import { formatDate, formatPeriod } from '@/utils/formatDate';
 import { useAuthStore } from '@/store/authStore';
 import type { SalarySlip } from '@/types';
 
+const ACCENT = '#0E7C5A';
+
+function titleCase(value?: string): string {
+  if (!value) return '-';
+  return value.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 export function SalarySlipPreview({ slip }: { slip: SalarySlip }) {
   const company = useAuthStore((s) => s.company);
-  const basic = slip.grossSalary - slip.allowances.reduce((s, a) => s + a.amount, 0);
+  const emp = slip.employee;
+  const earnings = [{ label: 'Basic', amount: slip.baseSalary }, ...slip.allowances];
+  const lopDays = Math.max(0, slip.workingDays - slip.presentDays);
+
+  const leftRows: [string, string][] = [
+    ['Employee ID', emp?.employeeCode ?? '-'],
+    ['Employee Name', emp?.name ?? '-'],
+    ['Designation', emp?.designation ?? '-'],
+    ['Department', emp?.departmentName ?? '-'],
+    ['Date of Joining', emp?.joinDate ? formatDate(emp.joinDate) : '-'],
+  ];
+  const rightRows: [string, string][] = [
+    ['Employment', titleCase(emp?.employmentType)],
+    ['Email', emp?.email || '-'],
+    ['Phone', emp?.phone || '-'],
+    ['Bank', emp?.bankDetails?.bankName || '-'],
+    ['Account No.', emp?.bankDetails?.accountNumber || '-'],
+  ];
+  const summary: [string, string][] = [
+    ['Gross Wages', formatCurrency(slip.grossSalary)],
+    ['Total Working Days', String(slip.workingDays)],
+    ['Paid Days', String(slip.presentDays)],
+    ['LOP Days', String(lopDays)],
+    ['Payment Status', titleCase(slip.paymentStatus)],
+    ['Pay Date', slip.paidOn ? formatDate(slip.paidOn) : '-'],
+  ];
+  const rowCount = Math.max(earnings.length, slip.deductions.length);
 
   return (
-    <div className="overflow-hidden rounded-xl border border-subtle bg-white text-[#0E1320] shadow-card">
-      <div className="flex items-center justify-between border-b border-[#E4E7EC] p-6">
-        <div className="flex items-center gap-2.5">
-          {company?.logoUrl ? (
-            <img
-              src={company.logoUrl}
-              alt="Logo"
-              className="h-9 w-9 rounded-lg object-contain"
-            />
-          ) : (
-            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#0E7C5A] text-[15px] font-bold text-white">
-              {(company?.companyName ?? 'C').charAt(0)}
-            </span>
-          )}
-          <div>
-            <p className="text-[15px] font-semibold">{company?.companyName ?? 'Company'}</p>
-            <p className="text-[11px] text-[#4B5468]">Salary Statement</p>
+    <div className="overflow-hidden rounded-xl border border-[#C9D0D8] bg-white text-[#0E1320] shadow-card">
+      {/* Header */}
+      <div className="flex items-center gap-3 border-b border-[#C9D0D8] p-5">
+        {company?.logoUrl ? (
+          <img src={company.logoUrl} alt="Logo" className="h-12 w-12 rounded-lg object-contain" />
+        ) : (
+          <span
+            className="flex h-12 w-12 items-center justify-center rounded-lg text-[20px] font-bold text-white"
+            style={{ backgroundColor: ACCENT }}
+          >
+            {(company?.companyName ?? 'C').charAt(0).toUpperCase()}
+          </span>
+        )}
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[16px] font-bold">{company?.companyName ?? 'Company'}</p>
+          <p className="text-[11px] text-[#6B7280]">Salary Statement</p>
+        </div>
+        <div className="text-right">
+          <p className="text-[10px] uppercase tracking-wide text-[#8A92A3]">Pay period</p>
+          <p className="font-data text-[13px] font-semibold">{formatPeriod(slip.period)}</p>
+        </div>
+      </div>
+
+      {/* Title band */}
+      <div className="border-b border-[#C9D0D8] bg-[#F1F4F8] py-2 text-center text-[12px] font-bold uppercase tracking-wide">
+        Payslip for {formatPeriod(slip.period)}
+      </div>
+
+      {/* Employee details */}
+      <div className="grid grid-cols-1 border-b border-[#C9D0D8] sm:grid-cols-2">
+        <dl className="divide-y divide-[#EAEDF1] sm:border-r sm:border-[#C9D0D8]">
+          {leftRows.map(([label, value]) => (
+            <DetailRow key={label} label={label} value={value} />
+          ))}
+        </dl>
+        <dl className="divide-y divide-[#EAEDF1] border-t border-[#C9D0D8] sm:border-t-0">
+          {rightRows.map(([label, value]) => (
+            <DetailRow key={label} label={label} value={value} />
+          ))}
+        </dl>
+      </div>
+
+      {/* Summary grid */}
+      <div className="grid grid-cols-2 border-b border-[#C9D0D8] sm:grid-cols-3">
+        {summary.map(([label, value]) => (
+          <div key={label} className="border-b border-r border-[#EAEDF1] px-4 py-3">
+            <p className="text-[9px] uppercase tracking-wide text-[#8A92A3]">{label}</p>
+            <p className="mt-0.5 font-data text-[13px] font-semibold">{value}</p>
           </div>
-        </div>
-        <div className="text-right">
-          <p className="text-[11px] text-[#8A92A3]">Pay period</p>
-          <p className="font-data text-[13px] font-medium">{formatPeriod(slip.period)}</p>
-        </div>
+        ))}
       </div>
 
-      <div className="grid grid-cols-2 gap-4 border-b border-[#E4E7EC] p-6 text-[12px]">
-        <div>
-          <p className="text-[10px] uppercase tracking-wide text-[#8A92A3]">Employee</p>
-          <p className="font-medium">{slip.employee?.name}</p>
-          <p className="text-[#4B5468]">{slip.employee?.designation}</p>
-        </div>
-        <div className="text-right">
-          <p className="text-[10px] uppercase tracking-wide text-[#8A92A3]">Employee code</p>
-          <p className="font-data font-medium">{slip.employee?.employeeCode}</p>
-          <p className="text-[#4B5468]">{slip.employee?.departmentName}</p>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 gap-6 p-6 sm:grid-cols-2">
-        <div>
-          <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-[#8A92A3]">
+      {/* Earnings / Deductions */}
+      <div className="grid grid-cols-2">
+        <div className="border-r border-[#C9D0D8]">
+          <div className="bg-[#0F172A] py-1.5 text-center text-[11px] font-bold uppercase tracking-wide text-white">
             Earnings
-          </p>
-          <SlipRow label="Basic" value={formatCurrency(basic)} />
-          {slip.allowances.map((a) => (
-            <SlipRow key={a.label} label={a.label} value={formatCurrency(a.amount)} />
-          ))}
-          <div className="mt-2 border-t border-[#0E7C5A]/20 pt-2">
-            <SlipRow label="Gross" value={formatCurrency(slip.grossSalary)} strong />
           </div>
+          {Array.from({ length: rowCount }).map((_, i) => (
+            <LineRow key={i} item={earnings[i]} />
+          ))}
+          <TotalRow label="Total Earnings" value={formatCurrency(slip.grossSalary)} />
         </div>
         <div>
-          <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-[#8A92A3]">
+          <div className="bg-[#0F172A] py-1.5 text-center text-[11px] font-bold uppercase tracking-wide text-white">
             Deductions
-          </p>
-          {slip.deductions.map((d) => (
-            <SlipRow key={d.label} label={d.label} value={formatCurrency(d.amount)} />
-          ))}
-          <div className="mt-2 border-t border-[#0E7C5A]/20 pt-2">
-            <SlipRow label="Total" value={formatCurrency(slip.totalDeductions)} strong />
           </div>
+          {Array.from({ length: rowCount }).map((_, i) => (
+            <LineRow key={i} item={slip.deductions[i]} />
+          ))}
+          <TotalRow label="Total Deductions" value={formatCurrency(slip.totalDeductions)} />
         </div>
       </div>
 
-      <div className="flex items-center justify-between bg-[#0E7C5A]/10 px-6 py-4">
-        <span className="text-[13px] font-semibold text-[#0E7C5A]">Net pay</span>
-        <span className="font-data text-[18px] font-bold text-[#0E7C5A]">
-          {formatCurrency(slip.netSalary)}
-        </span>
+      {/* Net salary */}
+      <div
+        className="flex items-center justify-between px-5 py-3.5 text-white"
+        style={{ backgroundColor: ACCENT }}
+      >
+        <span className="text-[13px] font-bold uppercase tracking-wide">Net Salary (Take Home)</span>
+        <span className="font-data text-[18px] font-bold">{formatCurrency(slip.netSalary)}</span>
       </div>
+
+      <p className="px-5 py-2.5 text-center text-[9px] text-[#8A92A3]">
+        This is a system-generated payslip and does not require a signature.
+      </p>
     </div>
   );
 }
 
-function SlipRow({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
+function DetailRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex justify-between py-1 text-[12px]">
-      <span className={strong ? 'font-semibold' : 'text-[#4B5468]'}>{label}</span>
-      <span className={`font-data ${strong ? 'font-semibold' : ''}`}>{value}</span>
+    <div className="flex items-center gap-2 px-4 py-2 text-[11.5px]">
+      <dt className="w-28 shrink-0 text-[#6B7280]">{label}</dt>
+      <dd className="text-[#6B7280]">:</dd>
+      <dd className="min-w-0 flex-1 truncate font-medium text-[#0E1320]">{value}</dd>
+    </div>
+  );
+}
+
+function LineRow({ item }: { item?: { label: string; amount: number } }) {
+  return (
+    <div className="flex items-center justify-between border-b border-[#EAEDF1] px-4 py-2 text-[11.5px]">
+      <span className="truncate text-[#4B5468]">{item?.label ?? '\u00A0'}</span>
+      <span className="font-data">{item ? formatCurrency(item.amount) : '\u00A0'}</span>
+    </div>
+  );
+}
+
+function TotalRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between bg-[#F1F4F8] px-4 py-2 text-[12px] font-bold">
+      <span>{label}</span>
+      <span className="font-data">{value}</span>
     </div>
   );
 }

@@ -47,10 +47,20 @@ export interface InvoiceRenderData {
 export interface SalarySlipRenderData {
   companyName: string;
   companyLogoUrl?: string;
+  companyAddressLines: string[];
+  companyPhone?: string;
+  companyEmail?: string;
   employeeName: string;
   employeeCode: string;
   designation: string;
   department?: string;
+  employmentType?: string;
+  email?: string;
+  phone?: string;
+  dateOfJoining?: string;
+  bankName?: string;
+  accountNumber?: string;
+  accountTitle?: string;
   period: string;
   currency: string;
   baseSalary: number;
@@ -62,6 +72,7 @@ export interface SalarySlipRenderData {
   workingDays: number;
   presentDays: number;
   paymentStatus: string;
+  paidOn?: string;
 }
 
 /** Sample invoice used by the designer live-preview endpoints. */

@@ -8,9 +8,12 @@ export interface SalarySlip {
   employeeId: string;
   employee?: Employee;
   period: string;
+  baseSalary: number;
   grossSalary: number;
   totalDeductions: number;
   netSalary: number;
+  workingDays: number;
+  presentDays: number;
   allowances: SalaryComponent[];
   deductions: SalaryComponent[];
   paymentStatus: SalarySlipPaymentStatus;

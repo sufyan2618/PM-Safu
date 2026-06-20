@@ -359,29 +359,38 @@ export function mapPayroll(dto: ApiPayroll): PayrollRun {
 
 export function mapSalarySlip(dto: ApiSalarySlip): SalarySlip {
   const emp = dto.employeeId;
+  let employee: Employee | undefined;
+  if (typeof emp === 'object') {
+    const dept = emp.departmentId;
+    employee = {
+      id: emp._id,
+      employeeCode: emp.employeeCode,
+      name: `${emp.firstName} ${emp.lastName}`.trim(),
+      email: emp.email ?? '',
+      phone: emp.phone,
+      departmentId: typeof dept === 'object' ? dept?._id : (dept ?? ''),
+      departmentName: typeof dept === 'object' ? dept?.name : undefined,
+      designation: emp.designation,
+      employmentType: (emp.employmentType as Employee['employmentType']) ?? 'full_time',
+      joinDate: emp.dateOfJoining ?? '',
+      status: 'active',
+      isActive: true,
+      bankDetails: emp.bankDetails,
+    };
+  }
+
   return {
     id: dto._id,
     payrollRunId: dto.payrollId,
     employeeId: typeof emp === 'object' ? emp._id : emp,
-    employee:
-      typeof emp === 'object'
-        ? ({
-            id: emp._id,
-            employeeCode: emp.employeeCode,
-            name: `${emp.firstName} ${emp.lastName}`.trim(),
-            email: '',
-            departmentId: '',
-            designation: emp.designation,
-            employmentType: 'full_time',
-            joinDate: '',
-            status: 'active',
-            isActive: true,
-          } as Employee)
-        : undefined,
+    employee,
     period: periodToString(dto.period),
+    baseSalary: dto.baseSalary,
     grossSalary: dto.grossSalary,
     totalDeductions: dto.totalDeductions,
     netSalary: dto.netSalary,
+    workingDays: dto.workingDays ?? 0,
+    presentDays: dto.presentDays ?? 0,
     allowances: (dto.allowances ?? []).map((a) => ({ label: a.name, amount: a.amount })),
     deductions: (dto.deductions ?? []).map((d) => ({ label: d.name, amount: d.amount })),
     paymentStatus: dto.paymentStatus,

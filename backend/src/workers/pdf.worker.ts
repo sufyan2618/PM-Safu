@@ -9,8 +9,8 @@ import { CompanyModel } from "../models/company.model";
 import { buildInvoiceRenderData } from "../lib/pdf/buildInvoiceRenderData";
 import { generateInvoicePdf } from "../lib/pdf/generateInvoicePdf";
 import { generateSalarySlipPdf } from "../lib/pdf/generateSalarySlipPdf";
+import { buildSalarySlipRenderData } from "../lib/pdf/buildSalarySlipRenderData";
 import { saveBuffer } from "../lib/storage";
-import { monthName } from "../utils/format";
 import type { PdfJobData } from "../queues/pdf.queue";
 
 async function handleInvoicePdf(invoiceId: string) {
@@ -30,31 +30,17 @@ async function handleSalarySlipPdf(salarySlipId: string) {
   if (!slip) throw new Error(`Salary slip not found: ${salarySlipId}`);
 
   const [company, employee] = await Promise.all([
-    CompanyModel.findById(slip.companyId).select("companyName legalName logoUrl currency"),
+    CompanyModel.findById(slip.companyId).select(
+      "companyName legalName logoUrl currency address phone registrationEmail",
+    ),
     EmployeeModel.findById(slip.employeeId).populate("departmentId", "name"),
   ]);
   if (!employee) throw new Error("Employee not found");
   const department = employee.departmentId as unknown as { name?: string } | null;
 
-  const buffer = await generateSalarySlipPdf({
-    companyName: company?.legalName || company?.companyName || "Company",
-    companyLogoUrl: company?.logoUrl,
-    employeeName: `${employee.firstName} ${employee.lastName}`,
-    employeeCode: employee.employeeCode,
-    designation: employee.designation,
-    department: department?.name,
-    period: `${monthName(slip.period.month)} ${slip.period.year}`,
-    currency: company?.currency ?? "USD",
-    baseSalary: slip.baseSalary,
-    allowances: slip.allowances,
-    deductions: slip.deductions,
-    grossSalary: slip.grossSalary,
-    totalDeductions: slip.totalDeductions,
-    netSalary: slip.netSalary,
-    workingDays: slip.workingDays,
-    presentDays: slip.presentDays,
-    paymentStatus: slip.paymentStatus,
-  });
+  const buffer = await generateSalarySlipPdf(
+    buildSalarySlipRenderData(slip, company, employee, department?.name),
+  );
 
   const { url } = await saveBuffer(buffer, `salary-slips/${slip.companyId}`, `${slip._id}.pdf`);
   slip.pdfUrl = url;

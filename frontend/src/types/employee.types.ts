@@ -24,6 +24,13 @@ export interface SalaryStructure {
 export type EmploymentType = 'full_time' | 'part_time' | 'contract';
 export type EmployeeStatus = 'active' | 'inactive' | 'terminated';
 
+export interface BankDetails {
+  bankName?: string;
+  accountNumber?: string;
+  accountTitle?: string;
+  branchCode?: string;
+}
+
 export interface Employee {
   id: string;
   employeeCode: string;
@@ -38,5 +45,6 @@ export interface Employee {
   joinDate: string;
   status: EmployeeStatus;
   isActive: boolean;
+  bankDetails?: BankDetails;
   salaryStructure?: SalaryStructure;
 }

@@ -229,13 +229,30 @@ export interface ApiPayroll {
   createdAt?: string;
 }
 
+export interface ApiSalarySlipEmployee {
+  _id: string;
+  firstName: string;
+  lastName: string;
+  employeeCode: string;
+  designation: string;
+  email?: string;
+  phone?: string;
+  dateOfJoining?: string;
+  employmentType?: string;
+  departmentId?: string | { _id: string; name: string };
+  bankDetails?: {
+    bankName?: string;
+    accountNumber?: string;
+    accountTitle?: string;
+    branchCode?: string;
+  };
+}
+
 export interface ApiSalarySlip {
   _id: string;
   companyId: string;
   payrollId: string;
-  employeeId:
-    | string
-    | { _id: string; firstName: string; lastName: string; employeeCode: string; designation: string };
+  employeeId: string | ApiSalarySlipEmployee;
   period: { month: number; year: number };
   baseSalary: number;
   allowances: { name: string; amount: number }[];
