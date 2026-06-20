@@ -1,19 +1,38 @@
 import type { NextFunction, Request, Response } from "express";
-import { HttpError } from "../utils/errors";
-import { verifyAccessToken } from "../utils/jwt";
+import { PlatformScope } from "../config/constants";
+import { ApiError } from "../utils/apiError";
+import { verifyAccessToken } from "../lib/token";
 
+function extractToken(req: Request): string | null {
+  const header = req.headers.authorization;
+  if (header?.startsWith("Bearer ")) {
+    return header.slice(7);
+  }
+  return null;
+}
+
+/** Verifies the access token and attaches `req.user`. */
 export function requireAuth(req: Request, _res: Response, next: NextFunction) {
-  const accessToken = req.headers.authorization?.replace("Bearer ", "");
-
-  if (!accessToken) {
-    next(new HttpError(401, "Unauthorized"));
-    return;
+  const token = extractToken(req);
+  if (!token) {
+    return next(ApiError.unauthorized("Authentication required"));
   }
 
   try {
-    req.user = verifyAccessToken(accessToken);
-    next();
+    req.user = verifyAccessToken(token);
+    return next();
   } catch {
-    next(new HttpError(401, "Invalid access token"));
+    return next(ApiError.unauthorized("Invalid or expired access token"));
   }
+}
+
+/** Requires the authenticated principal to be a super admin. */
+export function requireSuperAdmin(req: Request, _res: Response, next: NextFunction) {
+  if (!req.user) {
+    return next(ApiError.unauthorized("Authentication required"));
+  }
+  if (req.user.scope !== PlatformScope.SUPER_ADMIN) {
+    return next(ApiError.forbidden("Super admin access required"));
+  }
+  return next();
 }
