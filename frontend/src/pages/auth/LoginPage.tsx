@@ -43,7 +43,7 @@ export function LoginPage() {
       subtitle="Welcome back. Enter your details to access your workspace."
       footer={
         <>
-          New to Ledger?{' '}
+          New to PM-Safu?{' '}
           <Link to={ROUTES.REGISTER} className="font-medium text-accent-600 hover:text-accent-500">
             Create an account
           </Link>

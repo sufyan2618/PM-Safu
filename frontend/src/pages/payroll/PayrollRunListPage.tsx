@@ -68,7 +68,7 @@ export function PayrollRunListPage() {
         data={data?.items ?? []}
         isLoading={isLoading}
         rowKey={(row) => row.id}
-        onRowClick={(row) => navigate(ROUTES.PAYROLL_PROCESS(row.id))}
+        onRowClick={(row) => navigate(ROUTES.PAYROLL_DETAIL(row.id))}
         pagination={{ page, pageSize: 8, total: data?.total ?? 0, onPageChange: setPage }}
         emptyState={
           <EmptyState

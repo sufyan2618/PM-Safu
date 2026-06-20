@@ -92,6 +92,12 @@ const SECTION_KEYS = [
 
 type SectionKey = typeof SECTION_KEYS[number];
 
+// Sections whose order can be rearranged in the preview's lower content area.
+const REORDERABLE_KEYS = ['notes', 'terms', 'paymentInstructions', 'signature', 'footer'] as const;
+type ReorderableKey = typeof REORDERABLE_KEYS[number];
+const isReorderable = (key: SectionKey): key is ReorderableKey =>
+  (REORDERABLE_KEYS as readonly string[]).includes(key);
+
 const SECTION_LABELS: Record<SectionKey, string> = {
   companyInfo: 'Company Info',
   clientInfo: 'Client / Bill To',
@@ -214,21 +220,25 @@ export function InvoiceDesignerPage() {
       };
     });
   }
-  function moveSectionOrder(key: SectionKey, direction: 'up' | 'down') {
+  function moveSectionOrder(key: ReorderableKey, direction: 'up' | 'down') {
     setLocalDesign((d) => {
       if (!d) return d;
-      const sections = { ...d.sections };
-      const current = sections[key].order;
-      const target = direction === 'up' ? current - 1 : current + 1;
-      // Find what's at the target order and swap
-      const swapKey = SECTION_KEYS.find((k) => sections[k].order === target);
-      if (!swapKey) return d;
+      // Reorder only within the reorderable content group, sorted by current order.
+      const group = [...REORDERABLE_KEYS].sort(
+        (a, b) => d.sections[a].order - d.sections[b].order,
+      );
+      const idx = group.indexOf(key);
+      const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
+      if (targetIdx < 0 || targetIdx >= group.length) return d;
+      const swapKey = group[targetIdx];
+      const a = d.sections[key].order;
+      const b = d.sections[swapKey].order;
       return {
         ...d,
         sections: {
-          ...sections,
-          [key]: { ...sections[key], order: target },
-          [swapKey]: { ...sections[swapKey], order: current },
+          ...d.sections,
+          [key]: { ...d.sections[key], order: b },
+          [swapKey]: { ...d.sections[swapKey], order: a },
         },
       };
     });
@@ -356,6 +366,13 @@ export function InvoiceDesignerPage() {
       )
     : SECTION_KEYS;
 
+  // Content blocks that can be reordered in the preview, sorted by current order.
+  const reorderGroup = localDesign
+    ? [...REORDERABLE_KEYS].sort(
+        (a, b) => localDesign.sections[a].order - localDesign.sections[b].order,
+      )
+    : [...REORDERABLE_KEYS];
+
   return (
     <>
       <PageHeader
@@ -451,7 +468,7 @@ export function InvoiceDesignerPage() {
             </Card>
 
             {/* Tabs */}
-            <Card className="overflow-hidden">
+            <Card>
               <Tabs tabs={DESIGNER_TABS} value={activeTab} onChange={(v) => setActiveTab(v as DesignerTab)} />
 
               <div className="p-4">
@@ -688,38 +705,45 @@ export function InvoiceDesignerPage() {
                 {activeTab === 'sections' && (
                   <div className="space-y-1">
                     <p className="mb-3 text-caption text-ink-400">
-                      Toggle sections on/off. Use arrows to reorder.
+                      Toggle sections on/off. Use arrows to reorder the lower content blocks
+                      (notes, terms, payment, signature, footer).
                     </p>
-                    {sortedSections.map((key, idx) => {
+                    {sortedSections.map((key) => {
                       const sec = localDesign.sections[key];
                       const hasLabel = key === 'clientInfo' || key === 'notes' || key === 'terms';
+                      const reorderable = isReorderable(key);
+                      const groupIdx = reorderable ? reorderGroup.indexOf(key) : -1;
                       return (
                         <div
                           key={key}
                           className="rounded-lg border border-subtle bg-surface px-3 py-2.5"
                         >
                           <div className="flex items-center gap-2">
-                            {/* Up/Down */}
-                            <div className="flex flex-col gap-0.5">
-                              <button
-                                type="button"
-                                disabled={idx === 0}
-                                onClick={() => moveSectionOrder(key, 'up')}
-                                className="rounded p-0.5 text-ink-400 hover:bg-sunken disabled:opacity-30"
-                                aria-label="Move up"
-                              >
-                                <ChevronUp size={13} />
-                              </button>
-                              <button
-                                type="button"
-                                disabled={idx === sortedSections.length - 1}
-                                onClick={() => moveSectionOrder(key, 'down')}
-                                className="rounded p-0.5 text-ink-400 hover:bg-sunken disabled:opacity-30"
-                                aria-label="Move down"
-                              >
-                                <ChevronDown size={13} />
-                              </button>
-                            </div>
+                            {/* Up/Down — only for reorderable content blocks */}
+                            {reorderable ? (
+                              <div className="flex flex-col gap-0.5">
+                                <button
+                                  type="button"
+                                  disabled={groupIdx === 0}
+                                  onClick={() => moveSectionOrder(key, 'up')}
+                                  className="rounded p-0.5 text-ink-400 hover:bg-sunken disabled:opacity-30"
+                                  aria-label="Move up"
+                                >
+                                  <ChevronUp size={13} />
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={groupIdx === reorderGroup.length - 1}
+                                  onClick={() => moveSectionOrder(key, 'down')}
+                                  className="rounded p-0.5 text-ink-400 hover:bg-sunken disabled:opacity-30"
+                                  aria-label="Move down"
+                                >
+                                  <ChevronDown size={13} />
+                                </button>
+                              </div>
+                            ) : (
+                              <span className="w-[18px] shrink-0" aria-hidden />
+                            )}
                             <span className="flex-1 text-body-sm font-medium text-ink-900">
                               {SECTION_LABELS[key]}
                             </span>
@@ -879,6 +903,23 @@ export function InvoiceDesignerPage() {
                               onChange={(e) => patchWatermark({ opacity: Number(e.target.value) })}
                               className="w-full accent-accent-600"
                             />
+                          </div>
+                          <div>
+                            <label className="mb-1.5 block text-caption font-medium uppercase tracking-[0.04em] text-ink-500">
+                              Text size — {localDesign.watermark.fontSize ?? 72}px
+                            </label>
+                            <input
+                              type="range"
+                              min={16}
+                              max={160}
+                              step={1}
+                              value={localDesign.watermark.fontSize ?? 72}
+                              onChange={(e) => patchWatermark({ fontSize: Number(e.target.value) })}
+                              className="w-full accent-accent-600"
+                            />
+                            <p className="mt-1 text-caption text-ink-400">
+                              Lower the size if your watermark text is long so it fits on the page.
+                            </p>
                           </div>
                         </>
                       )}

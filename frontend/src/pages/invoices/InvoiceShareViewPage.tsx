@@ -55,7 +55,7 @@ export function InvoiceShareViewPage() {
           </>
         )}
         <p className="mt-6 text-center text-caption text-ink-400">
-          Powered by Ledger — Invoice &amp; Payroll
+          Powered by PM-Safu — Invoice &amp; Payroll
         </p>
       </main>
     </div>

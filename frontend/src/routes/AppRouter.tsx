@@ -61,6 +61,11 @@ const PayrollRunProcessPage = lazy(() =>
     default: m.PayrollRunProcessPage,
   })),
 );
+const PayrollRunDetailPage = lazy(() =>
+  import('@/pages/payroll/PayrollRunDetailPage').then((m) => ({
+    default: m.PayrollRunDetailPage,
+  })),
+);
 const SalarySlipListPage = lazy(() =>
   import('@/pages/salarySlips/SalarySlipListPage').then((m) => ({ default: m.SalarySlipListPage })),
 );
@@ -136,6 +141,7 @@ export function AppRouter() {
                   <Route path={ROUTES.PAYROLL_RUNS} element={<PayrollRunListPage />} />
                   <Route path={ROUTES.PAYROLL_NEW} element={<PayrollRunProcessPage />} />
                   <Route path={ROUTES.PAYROLL_PROCESS()} element={<PayrollRunProcessPage />} />
+                  <Route path={ROUTES.PAYROLL_DETAIL()} element={<PayrollRunDetailPage />} />
                 </Route>
 
                 <Route element={<RoleGuard allow={['company_admin', 'hr_manager', 'accountant']} />}>

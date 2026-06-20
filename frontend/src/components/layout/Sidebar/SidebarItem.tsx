@@ -40,7 +40,7 @@ export function SidebarItem({ label, icon: Icon, path, collapsed, onNavigate }: 
   );
 
   return collapsed ? (
-    <Tooltip content={label} side="right">
+    <Tooltip content={label} side="right" wrapperClassName="block w-full">
       {link}
     </Tooltip>
   ) : (

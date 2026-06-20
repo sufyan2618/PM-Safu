@@ -121,6 +121,55 @@ export function InvoicePreviewPane({
   // ── Bold style ────────────────────────────────────────────────────────────
   const isBold = baseTheme === 'bold';
 
+  const logoNode =
+    showLogo && logoUrl ? (
+      <img
+        src={logoUrl}
+        alt="Logo"
+        className="object-contain rounded"
+        style={{ height: 36, maxWidth: 100 }}
+      />
+    ) : showLogo ? (
+      <div
+        className="flex items-center justify-center rounded-lg text-white font-bold"
+        style={{
+          width: 36,
+          height: 36,
+          backgroundColor: isBold ? accent : primary,
+          fontSize: baseSize + 4,
+        }}
+      >
+        {companyName.charAt(0)}
+      </div>
+    ) : null;
+
+  const nameBlock = (align: 'left' | 'right') => (
+    <div className={align === 'right' ? 'text-right' : ''}>
+      <p className="font-semibold" style={{ color: secondary, fontSize: baseSize + 1 }}>
+        {companyName}
+      </p>
+      {company?.address && (
+        <p style={{ fontSize: baseSize - 1, color: `${secondary}88` }}>
+          {[company.address.city, company.address.country].filter(Boolean).join(', ')}
+        </p>
+      )}
+    </div>
+  );
+
+  const titleBlock = (align: 'left' | 'right') => (
+    <div className={align === 'right' ? 'text-right' : 'text-left'}>
+      <p
+        className="font-bold uppercase tracking-wide"
+        style={{ fontSize: headingSize * 0.55, color: isBold ? accent : primary }}
+      >
+        {isMinimal ? 'Invoice' : 'INVOICE'}
+      </p>
+      <p className="font-mono" style={{ fontSize: baseSize - 1, color: `${secondary}99` }}>
+        {invoiceNumber}
+      </p>
+    </div>
+  );
+
   return (
     <div
       className="relative overflow-hidden rounded-xl border border-subtle shadow-card"
@@ -141,8 +190,9 @@ export function InvoicePreviewPane({
           style={{ zIndex: 10 }}
         >
           <span
-            className="select-none text-[72px] font-bold uppercase tracking-widest"
+            className="select-none font-bold uppercase tracking-widest"
             style={{
+              fontSize: watermark.fontSize ?? 72,
               color: secondary,
               opacity: watermark.opacity ?? 0.08,
               transform: 'rotate(-30deg)',
@@ -189,59 +239,41 @@ export function InvoicePreviewPane({
           {!isMinimal && (
             <div className="h-1.5 w-full" style={{ backgroundColor: isBold ? accent : primary }} />
           )}
-          <div className="flex items-start justify-between px-7 pt-6 pb-2">
-            {/* Logo area */}
-            <div className="flex items-center gap-3">
-              {showLogo && logoUrl ? (
-                <img
-                  src={logoUrl}
-                  alt="Logo"
-                  className="object-contain rounded"
-                  style={{ height: 36, maxWidth: 100 }}
-                />
-              ) : showLogo ? (
-                <div
-                  className="flex items-center justify-center rounded-lg text-white font-bold"
-                  style={{
-                    width: 36,
-                    height: 36,
-                    backgroundColor: isBold ? accent : primary,
-                    fontSize: baseSize + 4,
-                  }}
-                >
-                  {companyName.charAt(0)}
-                </div>
-              ) : null}
-              {headerStyle === 'logo-left' || !logoUrl ? (
-                <div>
-                  <p className="font-semibold" style={{ color: secondary, fontSize: baseSize + 1 }}>
-                    {companyName}
-                  </p>
-                  {company?.address && (
-                    <p style={{ fontSize: baseSize - 1, color: `${secondary}88` }}>
-                      {[company.address.city, company.address.country].filter(Boolean).join(', ')}
-                    </p>
-                  )}
-                </div>
-              ) : null}
-            </div>
 
-            {/* Invoice title right */}
-            <div className="text-right">
-              <p
-                className="font-bold uppercase tracking-wide"
-                style={{
-                  fontSize: headingSize * 0.55,
-                  color: isBold ? accent : primary,
-                }}
-              >
-                {isMinimal ? 'Invoice' : 'INVOICE'}
+          {headerStyle === 'logo-center' ? (
+            <div className="flex flex-col items-center gap-1 px-7 pt-6 pb-2 text-center">
+              {logoNode}
+              <p className="font-semibold" style={{ color: secondary, fontSize: baseSize + 2 }}>
+                {companyName}
               </p>
-              <p className="font-mono" style={{ fontSize: baseSize - 1, color: `${secondary}99` }}>
-                {invoiceNumber}
-              </p>
+              {company?.address && (
+                <p style={{ fontSize: baseSize - 1, color: `${secondary}88` }}>
+                  {[company.address.city, company.address.country].filter(Boolean).join(', ')}
+                </p>
+              )}
+              <div className="mt-1">{titleBlock('left')}</div>
             </div>
-          </div>
+          ) : (
+            <div className="flex items-start justify-between px-7 pt-6 pb-2">
+              {headerStyle === 'logo-right' ? (
+                <>
+                  {titleBlock('left')}
+                  <div className="flex items-center gap-3">
+                    {nameBlock('right')}
+                    {logoNode}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center gap-3">
+                    {logoNode}
+                    {nameBlock('left')}
+                  </div>
+                  {titleBlock('right')}
+                </>
+              )}
+            </div>
+          )}
         </>
       )}
 
@@ -381,54 +413,93 @@ export function InvoicePreviewPane({
         </div>
       )}
 
-      {/* ── Notes / Terms / Footer ───────────────────────────────────────── */}
-      {(sections?.notes?.visible !== false ||
-        sections?.terms?.visible !== false ||
-        sections?.footer?.visible !== false) && (
-        <div
-          className="mx-7 mt-5 mb-6 space-y-2 border-t pt-4"
-          style={{ borderColor: `${primary}22`, fontSize: baseSize - 1 }}
-        >
-          {sections?.notes?.visible !== false && notes && (
-            <p>
-              <span className="font-semibold" style={{ color: secondary }}>
-                {sections?.notes?.label ?? 'Notes'}:{' '}
-              </span>
-              <span style={{ color: `${textColor}80` }}>{notes}</span>
-            </p>
-          )}
-          {sections?.terms?.visible !== false && terms && (
-            <p>
-              <span className="font-semibold" style={{ color: secondary }}>
-                {sections?.terms?.label ?? 'Terms & Conditions'}:{' '}
-              </span>
-              <span style={{ color: `${textColor}80` }}>{terms}</span>
-            </p>
-          )}
-          {sections?.paymentInstructions?.visible && sections.paymentInstructions.content && (
-            <p>
-              <span className="font-semibold" style={{ color: secondary }}>Payment: </span>
-              <span style={{ color: `${textColor}80` }}>{sections.paymentInstructions.content}</span>
-            </p>
-          )}
-          {sections?.footer?.visible !== false && sections?.footer?.content && (
-            <p className="pt-1" style={{ color: `${textColor}50`, fontSize: baseSize - 2 }}>
-              {sections.footer.content}
-            </p>
-          )}
-          {sections?.signature?.visible && (
-            <div className="mt-4 flex flex-col gap-1">
-              <div className="h-8 w-24 border-b" style={{ borderColor: `${primary}44` }} />
-              {sections.signature.signatoryName && (
-                <p className="font-medium" style={{ fontSize: baseSize - 1 }}>{sections.signature.signatoryName}</p>
-              )}
-              {sections.signature.signatoryTitle && (
-                <p style={{ fontSize: baseSize - 2, color: `${textColor}60` }}>{sections.signature.signatoryTitle}</p>
-              )}
-            </div>
-          )}
-        </div>
-      )}
+      {/* ── Notes / Terms / Payment / Signature / Footer (ordered) ────────── */}
+      {(() => {
+        const blocks: { key: string; order: number; node: React.ReactNode }[] = [];
+
+        if (sections?.notes?.visible !== false && notes) {
+          blocks.push({
+            key: 'notes',
+            order: sections?.notes?.order ?? 6,
+            node: (
+              <p>
+                <span className="font-semibold" style={{ color: secondary }}>
+                  {sections?.notes?.label ?? 'Notes'}:{' '}
+                </span>
+                <span style={{ color: `${textColor}80` }}>{notes}</span>
+              </p>
+            ),
+          });
+        }
+        if (sections?.terms?.visible !== false && terms) {
+          blocks.push({
+            key: 'terms',
+            order: sections?.terms?.order ?? 7,
+            node: (
+              <p>
+                <span className="font-semibold" style={{ color: secondary }}>
+                  {sections?.terms?.label ?? 'Terms & Conditions'}:{' '}
+                </span>
+                <span style={{ color: `${textColor}80` }}>{terms}</span>
+              </p>
+            ),
+          });
+        }
+        if (sections?.paymentInstructions?.visible && sections.paymentInstructions.content) {
+          blocks.push({
+            key: 'payment',
+            order: sections?.paymentInstructions?.order ?? 8,
+            node: (
+              <p>
+                <span className="font-semibold" style={{ color: secondary }}>Payment: </span>
+                <span style={{ color: `${textColor}80` }}>{sections.paymentInstructions.content}</span>
+              </p>
+            ),
+          });
+        }
+        if (sections?.signature?.visible) {
+          blocks.push({
+            key: 'signature',
+            order: sections?.signature?.order ?? 9,
+            node: (
+              <div className="mt-2 flex flex-col gap-1">
+                <div className="h-8 w-24 border-b" style={{ borderColor: `${primary}44` }} />
+                {sections.signature.signatoryName && (
+                  <p className="font-medium" style={{ fontSize: baseSize - 1 }}>{sections.signature.signatoryName}</p>
+                )}
+                {sections.signature.signatoryTitle && (
+                  <p style={{ fontSize: baseSize - 2, color: `${textColor}60` }}>{sections.signature.signatoryTitle}</p>
+                )}
+              </div>
+            ),
+          });
+        }
+        if (sections?.footer?.visible !== false && sections?.footer?.content) {
+          blocks.push({
+            key: 'footer',
+            order: sections?.footer?.order ?? 10,
+            node: (
+              <p className="pt-1" style={{ color: `${textColor}50`, fontSize: baseSize - 2 }}>
+                {sections.footer.content}
+              </p>
+            ),
+          });
+        }
+
+        if (blocks.length === 0) return null;
+        blocks.sort((a, b) => a.order - b.order);
+
+        return (
+          <div
+            className="mx-7 mt-5 mb-6 space-y-2 border-t pt-4"
+            style={{ borderColor: `${primary}22`, fontSize: baseSize - 1 }}
+          >
+            {blocks.map((b) => (
+              <div key={b.key}>{b.node}</div>
+            ))}
+          </div>
+        );
+      })()}
     </div>
   );
 }

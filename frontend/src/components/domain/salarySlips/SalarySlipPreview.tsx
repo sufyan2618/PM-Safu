@@ -1,21 +1,29 @@
 import { formatCurrency } from '@/utils/formatCurrency';
 import { formatPeriod } from '@/utils/formatDate';
+import { useAuthStore } from '@/store/authStore';
 import type { SalarySlip } from '@/types';
 
 export function SalarySlipPreview({ slip }: { slip: SalarySlip }) {
+  const company = useAuthStore((s) => s.company);
   const basic = slip.grossSalary - slip.allowances.reduce((s, a) => s + a.amount, 0);
 
   return (
     <div className="overflow-hidden rounded-xl border border-subtle bg-white text-[#0E1320] shadow-card">
       <div className="flex items-center justify-between border-b border-[#E4E7EC] p-6">
         <div className="flex items-center gap-2.5">
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#0E7C5A]">
-            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-              <path d="M3 4.5h12M3 9h12M3 13.5h7" stroke="white" strokeWidth="1.75" strokeLinecap="round" />
-            </svg>
-          </span>
+          {company?.logoUrl ? (
+            <img
+              src={company.logoUrl}
+              alt="Logo"
+              className="h-9 w-9 rounded-lg object-contain"
+            />
+          ) : (
+            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#0E7C5A] text-[15px] font-bold text-white">
+              {(company?.companyName ?? 'C').charAt(0)}
+            </span>
+          )}
           <div>
-            <p className="text-[15px] font-semibold">Northwind Trading Co.</p>
+            <p className="text-[15px] font-semibold">{company?.companyName ?? 'Company'}</p>
             <p className="text-[11px] text-[#4B5468]">Salary Statement</p>
           </div>
         </div>

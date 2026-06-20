@@ -38,4 +38,18 @@ export const salarySlipService = {
   async markPaid(id: string, paidOn?: string): Promise<void> {
     await axiosClient.patch(ENDPOINTS.salarySlips.markPaid(id), { paidOn });
   },
+
+  async downloadPdf(id: string, filename = 'salary-slip.pdf'): Promise<void> {
+    const { data } = await axiosClient.get<Blob>(ENDPOINTS.salarySlips.pdf(id), {
+      responseType: 'blob',
+    });
+    const url = URL.createObjectURL(data);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  },
 };

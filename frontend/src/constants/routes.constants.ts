@@ -23,6 +23,7 @@ export const ROUTES = {
   DEPARTMENTS: '/employees/departments',
 
   PAYROLL_RUNS: '/payroll',
+  PAYROLL_DETAIL: (id = ':id') => `/payroll/${id}`,
   PAYROLL_PROCESS: (id = ':id') => `/payroll/${id}/process`,
   PAYROLL_NEW: '/payroll/new/process',
 

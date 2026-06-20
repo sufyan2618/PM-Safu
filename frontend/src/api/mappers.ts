@@ -182,7 +182,7 @@ export function mapInvoice(dto: ApiInvoice): Invoice {
     amountPaid: dto.amountPaid,
     amountDue: dto.amountDue,
     currency: dto.currency,
-    templateId: dto.templateId,
+    templateId: typeof dto.templateId === 'object' ? dto.templateId._id : dto.templateId,
     notes: dto.notes,
     terms: dto.termsAndConditions,
     shareToken: dto.shareToken,
@@ -271,7 +271,7 @@ function mapDesign(dto: ApiInvoiceTemplate): InvoiceDesign {
     branding,
     typography,
     sections,
-    watermark: { enabled: w.enabled ?? false, text: w.text ?? '', opacity: w.opacity ?? 0.1 },
+    watermark: { enabled: w.enabled ?? false, text: w.text ?? '', opacity: w.opacity ?? 0.1, fontSize: w.fontSize ?? 72 },
   };
 }
 

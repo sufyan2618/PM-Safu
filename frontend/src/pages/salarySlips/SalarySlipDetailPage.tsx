@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Check, Download } from 'lucide-react';
 import { PageHeader } from '@/components/layout/PageHeader';
@@ -5,6 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { SalarySlipPreview } from '@/components/domain/salarySlips/SalarySlipPreview';
 import { useMarkSlipPaid, useSalarySlip } from '@/hooks/queries/useSalarySlips';
+import { salarySlipService } from '@/api/services/salarySlip.service';
 import { useToast } from '@/hooks/useToast';
 import { formatPeriod } from '@/utils/formatDate';
 import { ROUTES } from '@/constants/routes.constants';
@@ -14,6 +16,20 @@ export function SalarySlipDetailPage() {
   const toast = useToast();
   const { data: slip, isLoading } = useSalarySlip(id);
   const markPaid = useMarkSlipPaid();
+  const [downloading, setDownloading] = useState(false);
+
+  async function handleDownload() {
+    if (!slip) return;
+    setDownloading(true);
+    try {
+      const name = `salary-slip-${slip.employee?.employeeCode ?? slip.id}-${slip.period}.pdf`;
+      await salarySlipService.downloadPdf(slip.id, name);
+    } catch {
+      toast.error('Could not download PDF');
+    } finally {
+      setDownloading(false);
+    }
+  }
 
   if (isLoading || !slip) {
     return (
@@ -38,7 +54,12 @@ export function SalarySlipDetailPage() {
         ]}
         actions={
           <>
-            <Button variant="outline" leftIcon={<Download size={16} />} onClick={() => toast.info('Generating PDF…')}>
+            <Button
+              variant="outline"
+              leftIcon={<Download size={16} />}
+              isLoading={downloading}
+              onClick={handleDownload}
+            >
               Download PDF
             </Button>
             {slip.paymentStatus === 'pending' && (

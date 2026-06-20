@@ -30,3 +30,25 @@ export function useProcessPayroll() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['payroll'] }),
   });
 }
+
+export function useFinalizePayroll() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => payrollService.finalize(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['payroll'] });
+      qc.invalidateQueries({ queryKey: ['salary-slips'] });
+    },
+  });
+}
+
+export function useDeletePayroll() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => payrollService.remove(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['payroll'] });
+      qc.invalidateQueries({ queryKey: ['salary-slips'] });
+    },
+  });
+}

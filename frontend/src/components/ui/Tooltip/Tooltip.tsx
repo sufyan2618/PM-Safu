@@ -6,6 +6,8 @@ interface TooltipProps {
   children: ReactNode;
   side?: 'top' | 'bottom' | 'left' | 'right';
   className?: string;
+  /** Extra classes for the outer trigger wrapper. */
+  wrapperClassName?: string;
 }
 
 const SIDE_CLASSES = {
@@ -15,11 +17,11 @@ const SIDE_CLASSES = {
   right: 'left-full top-1/2 -translate-y-1/2 ml-2',
 };
 
-export function Tooltip({ content, children, side = 'top', className }: TooltipProps) {
+export function Tooltip({ content, children, side = 'top', className, wrapperClassName }: TooltipProps) {
   const [open, setOpen] = useState(false);
   return (
     <span
-      className="relative inline-flex"
+      className={cn('relative inline-flex', wrapperClassName)}
       onMouseEnter={() => setOpen(true)}
       onMouseLeave={() => setOpen(false)}
       onFocus={() => setOpen(true)}

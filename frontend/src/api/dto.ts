@@ -91,7 +91,7 @@ export interface ApiInvoice {
   companyId: string;
   invoiceNumber: string;
   clientId: string | ApiClient;
-  templateId: string;
+  templateId: string | { _id: string; name?: string; baseTheme?: string };
   status: InvoiceStatus;
   issueDate: string;
   dueDate: string;
@@ -160,7 +160,7 @@ export interface ApiInvoiceTemplate {
       signature?: { visible?: boolean; order?: number; signatureImageUrl?: string; signatoryName?: string; signatoryTitle?: string };
       footer?: { visible?: boolean; order?: number; content?: string };
     };
-    watermark?: { enabled?: boolean; text?: string; opacity?: number };
+    watermark?: { enabled?: boolean; text?: string; opacity?: number; fontSize?: number };
   };
   thumbnailUrl?: string;
   isArchived: boolean;

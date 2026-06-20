@@ -120,7 +120,7 @@ export interface InvoiceDesign {
   branding: InvoiceDesignBranding;
   typography: InvoiceDesignTypography;
   sections: InvoiceDesignSections;
-  watermark: { enabled: boolean; text: string; opacity: number };
+  watermark: { enabled: boolean; text: string; opacity: number; fontSize: number };
 }
 
 export interface InvoiceTemplate {

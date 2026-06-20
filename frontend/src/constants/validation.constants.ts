@@ -96,6 +96,9 @@ export const employeeSchema = z.object({
 });
 export type EmployeeFormValues = z.infer<typeof employeeSchema>;
 
+export const employeeEditSchema = employeeSchema.omit({ baseSalary: true });
+export type EmployeeEditFormValues = z.infer<typeof employeeEditSchema>;
+
 export const departmentSchema = z.object({
   name: z.string().min(2, 'Department name is required'),
   description: z.string().optional(),

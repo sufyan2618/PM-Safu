@@ -10,7 +10,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { StatusPill } from '@/components/domain/shared/StatusPill';
 import { InvoicePreviewPane } from '@/components/domain/invoices/InvoicePreviewPane';
-import { useInvoice, useInvoiceActions } from '@/hooks/queries/useInvoices';
+import { useInvoice, useInvoiceActions, useInvoiceTemplates } from '@/hooks/queries/useInvoices';
 import { useToast } from '@/hooks/useToast';
 import { formatCurrency } from '@/utils/formatCurrency';
 import { formatDate } from '@/utils/formatDate';
