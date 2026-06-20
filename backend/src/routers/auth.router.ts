@@ -1,37 +1,36 @@
 import { Router } from "express";
 import {
+  changePassword,
+  forgotPassword,
   login,
   logout,
-  profile,
-  refreshAccessToken,
-  register,
-  resendOtp,
+  me,
+  refresh,
+  registerCompany,
   resetPassword,
-  updatePassword,
-  verifyOtp,
+  superAdminLogin,
 } from "../controllers/auth.controller";
-import {
-  loginSchema,
-  refreshTokenSchema,
-  registerSchema,
-  resendOtpSchema,
-  resetPasswordSchema,
-  updatePasswordSchema,
-  verifyOtpSchema,
-} from "../schemas/auth.schema";
 import { requireAuth } from "../middlewares/auth.middleware";
-import { validate } from "../utils/validators";
+import { validate } from "../middlewares/validate.middleware";
+import { authRateLimiter } from "../middlewares/rate-limit.middleware";
+import {
+  changePasswordSchema,
+  forgotPasswordSchema,
+  loginSchema,
+  registerCompanySchema,
+  resetPasswordSchema,
+} from "../schemas/auth.schema";
 
-const authRouter = Router();
+const router = Router();
 
-authRouter.post("/register", validate(registerSchema), register);
-authRouter.post("/verify-otp", validate(verifyOtpSchema), verifyOtp);
-authRouter.post("/resend-otp", validate(resendOtpSchema), resendOtp);
-authRouter.post("/login", validate(loginSchema), login);
-authRouter.post("/refresh-token", validate(refreshTokenSchema), refreshAccessToken);
-authRouter.post("/logout", logout);
-authRouter.get("/profile", requireAuth, profile);
-authRouter.post("/reset-password", validate(resetPasswordSchema), resetPassword);
-authRouter.post("/update-password", validate(updatePasswordSchema), updatePassword);
+router.post("/register-company", authRateLimiter, validate({ body: registerCompanySchema }), registerCompany);
+router.post("/login", authRateLimiter, validate({ body: loginSchema }), login);
+router.post("/super-admin/login", authRateLimiter, validate({ body: loginSchema }), superAdminLogin);
+router.post("/refresh", refresh);
+router.post("/logout", logout);
+router.get("/me", requireAuth, me);
+router.post("/forgot-password", authRateLimiter, validate({ body: forgotPasswordSchema }), forgotPassword);
+router.post("/reset-password", authRateLimiter, validate({ body: resetPasswordSchema }), resetPassword);
+router.post("/change-password", requireAuth, validate({ body: changePasswordSchema }), changePassword);
 
-export default authRouter;
+export default router;

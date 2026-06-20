@@ -1,0 +1,97 @@
+import type { Request, Response } from "express";
+import { EMAIL_JOBS } from "../config/constants";
+import { CompanyModel } from "../models/company.model";
+import { UserModel } from "../models/user.model";
+import { asyncHandler } from "../utils/async-handler";
+import { ApiError } from "../utils/apiError";
+import { sendCreated, sendSuccess } from "../utils/apiResponse";
+import { buildMeta, getPagination } from "../utils/pagination";
+import { hashPassword } from "../utils/password";
+import { generateToken } from "../utils/generateSlug";
+import { enqueueEmail } from "../queues/email.queue";
+
+export const listUsers = asyncHandler(async (req: Request, res: Response) => {
+  const { page, limit, skip, sort } = getPagination(req.query);
+  const { role, isActive, search } = req.query as {
+    role?: string;
+    isActive?: boolean;
+    search?: string;
+  };
+
+  const filter: Record<string, unknown> = { companyId: req.companyId };
+  if (role) filter.role = role;
+  if (typeof isActive === "boolean") filter.isActive = isActive;
+  if (search) {
+    filter.$or = [
+      { name: { $regex: search, $options: "i" } },
+      { email: { $regex: search, $options: "i" } },
+    ];
+  }
+
+  const [users, total] = await Promise.all([
+    UserModel.find(filter).sort(sort).skip(skip).limit(limit),
+    UserModel.countDocuments(filter),
+  ]);
+
+  return sendSuccess(res, { data: users, meta: buildMeta(total, page, limit) });
+});
+
+export const createUser = asyncHandler(async (req: Request, res: Response) => {
+  const { name, email, role, password } = req.body;
+
+  const existing = await UserModel.findOne({ companyId: req.companyId, email });
+  if (existing) throw ApiError.conflict("A user with this email already exists in your company");
+
+  const tempPassword = password || generateToken(6);
+  const user = await UserModel.create({
+    companyId: req.companyId,
+    name,
+    email,
+    role,
+    passwordHash: await hashPassword(tempPassword),
+    invitedBy: req.user?.sub,
+  });
+
+  const company = await CompanyModel.findById(req.companyId).select("companyName");
+  await enqueueEmail({
+    job: EMAIL_JOBS.USER_INVITE,
+    to: email,
+    name,
+    companyName: company?.companyName ?? "your company",
+    tempPassword,
+  });
+
+  return sendCreated(res, { message: "User invited", data: user });
+});
+
+export const getUser = asyncHandler(async (req: Request, res: Response) => {
+  const user = await UserModel.findOne({ _id: req.params.id, companyId: req.companyId });
+  if (!user) throw ApiError.notFound("User not found");
+  return sendSuccess(res, { data: user });
+});
+
+export const updateUser = asyncHandler(async (req: Request, res: Response) => {
+  const user = await UserModel.findOne({ _id: req.params.id, companyId: req.companyId });
+  if (!user) throw ApiError.notFound("User not found");
+
+  // Prevent an admin from demoting/deactivating themselves and losing access.
+  if (user._id.toString() === req.user?.sub && (req.body.role || req.body.isActive === false)) {
+    throw ApiError.badRequest("You cannot change your own role or deactivate yourself");
+  }
+
+  Object.assign(user, req.body);
+  await user.save();
+  return sendSuccess(res, { message: "User updated", data: user });
+});
+
+export const deleteUser = asyncHandler(async (req: Request, res: Response) => {
+  const user = await UserModel.findOne({ _id: req.params.id, companyId: req.companyId });
+  if (!user) throw ApiError.notFound("User not found");
+  if (user._id.toString() === req.user?.sub) {
+    throw ApiError.badRequest("You cannot deactivate your own account");
+  }
+
+  user.isActive = false;
+  await user.save();
+  return sendSuccess(res, { message: "User deactivated" });
+});

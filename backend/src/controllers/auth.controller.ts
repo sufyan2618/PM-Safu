@@ -1,306 +1,309 @@
 import type { Request, Response } from "express";
-import type { HydratedDocument } from "mongoose";
+import { CompanyRole, CompanyStatus, EMAIL_JOBS, PlatformScope, UserType } from "../config/constants";
+import { CompanyModel } from "../models/company.model";
 import { UserModel } from "../models/user.model";
-import type { IUser } from "../types/user";
+import { SuperAdminModel } from "../models/superAdmin.model";
 import { asyncHandler } from "../utils/async-handler";
-import { HttpError } from "../utils/errors";
-import {
-  clearAuthCookie,
-  getTokenExpiryDate,
-  setRefreshTokenCookie,
-  signAccessToken,
-  signRefreshToken,
-  verifyRefreshToken,
-} from "../utils/jwt";
-import { generateOtp, otpExpiry } from "../utils/otp";
+import { ApiError } from "../utils/apiError";
+import { sendCreated, sendSuccess } from "../utils/apiResponse";
 import { comparePassword, hashPassword } from "../utils/password";
-import { addOtpEmailJob } from "../queues/email.queue";
-import { sanitizeUser, checkAndUpdateEmailRateLimit } from "../utils/functions";
+import { issueAuthTokens, revokeRefreshToken, rotateRefreshToken } from "../utils/authTokens";
+import { clearRefreshTokenCookie, hashToken } from "../lib/token";
+import { generateToken } from "../utils/generateSlug";
+import { enqueueEmail } from "../queues/email.queue";
+import type { ICompany } from "../models/company.model";
+import type { IUser } from "../models/user.model";
 
-async function issueTokensAndPersistRefresh(user: HydratedDocument<IUser>) {
-  const payload = { userId: user._id.toString(), email: user.email };
-  const accessToken = signAccessToken(payload);
-  const refreshToken = signRefreshToken(payload);
-  user.refreshToken = refreshToken;
-  user.refreshTokenExpiry = getTokenExpiryDate(refreshToken);
-  await user.save();
-  return { accessToken, refreshToken };
+function sanitizeUser(user: IUser) {
+  return {
+    id: user._id.toString(),
+    companyId: user.companyId.toString(),
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    isActive: user.isActive,
+    avatarUrl: user.avatarUrl,
+    lastLoginAt: user.lastLoginAt,
+  };
 }
 
-export const register = asyncHandler(async (req: Request, res: Response) => {
-  const { firstName, lastName, email, password } = req.body;
+function companySummary(company: ICompany) {
+  return {
+    id: company._id.toString(),
+    companyName: company.companyName,
+    status: company.status,
+    isActive: company.isActive,
+    onboardingCompleted: company.onboardingCompleted,
+    currency: company.currency,
+    logoUrl: company.logoUrl,
+  };
+}
 
-  const existingUser = await UserModel.findOne({ email });
-  if (existingUser) {
-    throw new HttpError(409, "User already exists");
+export const registerCompany = asyncHandler(async (req: Request, res: Response) => {
+  const { companyName, registrationEmail, password, adminName } = req.body;
+
+  const existingCompany = await CompanyModel.findOne({ registrationEmail });
+  if (existingCompany) {
+    throw ApiError.conflict("A company is already registered with this email");
   }
 
-  const otp = generateOtp();
-  const user = await UserModel.create({
-    firstName,
-    lastName,
-    email,
-    password: await hashPassword(password),
-    otp,
-    otpExpiry: otpExpiry(),
-    otpPurpose: "verify_email",
+  const company = await CompanyModel.create({
+    companyName,
+    registrationEmail,
+    status: CompanyStatus.PENDING,
   });
 
-  checkAndUpdateEmailRateLimit(user);
-  await user.save();
-
-  await addOtpEmailJob({
-    to: user.email,
-    subject: "Verify your email",
-    otp,
-    purpose: "verify_email",
-  });
-
-  res.status(201).json({
-    success: true,
-    message: "Registered successfully. OTP sent to email.",
-    data: sanitizeUser(user),
-  });
-});
-
-export const verifyOtp = asyncHandler(async (req: Request, res: Response) => {
-  const { email, otp, purpose } = req.body;
-
-  const user = await UserModel.findOne({ email });
-  if (!user) {
-    throw new HttpError(404, "User not found");
+  try {
+    await UserModel.create({
+      companyId: company._id,
+      name: adminName,
+      email: registrationEmail,
+      passwordHash: await hashPassword(password),
+      role: CompanyRole.COMPANY_ADMIN,
+    });
+  } catch (error) {
+    // Roll back the company if the admin user couldn't be created.
+    await CompanyModel.deleteOne({ _id: company._id });
+    throw error;
   }
 
-  if (!user.otp || !user.otpExpiry || !user.otpPurpose) {
-    throw new HttpError(400, "No OTP found");
-  }
+  await enqueueEmail({ job: EMAIL_JOBS.COMPANY_RECEIVED, to: registrationEmail, companyName });
 
-  if (user.otpPurpose !== purpose) {
-    throw new HttpError(400, "OTP purpose mismatch");
-  }
-
-  if (user.otp !== otp) {
-    throw new HttpError(400, "Invalid OTP");
-  }
-
-  if (user.otpExpiry.getTime() < Date.now()) {
-    throw new HttpError(400, "OTP expired");
-  }
-
-  if (purpose === "verify_email") {
-    user.isVerified = true;
-    user.otp = undefined;
-    user.otpExpiry = undefined;
-    user.otpPurpose = undefined;
-  }
-  await user.save();
-
-  res.status(200).json({
-    success: true,
-    message: "OTP verified successfully",
-  });
-});
-
-export const resendOtp = asyncHandler(async (req: Request, res: Response) => {
-  const { email, purpose } = req.body;
-  const user = await UserModel.findOne({ email });
-
-  if (!user) {
-    throw new HttpError(404, "User not found");
-  }
-
-  checkAndUpdateEmailRateLimit(user);
-
-  const otp = generateOtp();
-  user.otp = otp;
-  user.otpExpiry = otpExpiry();
-  user.otpPurpose = purpose;
-  await user.save();
-
-  await addOtpEmailJob({
-    to: user.email,
-    subject: purpose === "verify_email" ? "Verify your email" : "Reset your password",
-    otp,
-    purpose,
-  });
-
-  res.status(200).json({
-    success: true,
-    message: "OTP sent successfully",
+  return sendCreated(res, {
+    message: "Registration submitted. Your company is pending approval.",
+    data: companySummary(company),
   });
 });
 
 export const login = asyncHandler(async (req: Request, res: Response) => {
   const { email, password } = req.body;
-  const user = await UserModel.findOne({ email });
 
+  const user = await UserModel.findOne({ email }).select("+passwordHash");
   if (!user) {
-    throw new HttpError(401, "Invalid credentials");
+    throw ApiError.unauthorized("Invalid credentials");
   }
 
-  if (user.isBlocked) {
-    throw new HttpError(403, "Account blocked due to too many failed attempts");
-  }
-
-  const isValid = await comparePassword(password, user.password);
+  const isValid = await comparePassword(password, user.passwordHash);
   if (!isValid) {
-    user.loginAttempts += 1;
-    if (user.loginAttempts >= 5) {
-      user.isBlocked = true;
-    }
-    await user.save();
-    throw new HttpError(401, "Invalid credentials");
+    throw ApiError.unauthorized("Invalid credentials");
+  }
+  if (!user.isActive) {
+    throw ApiError.forbidden("Your account has been deactivated");
   }
 
-  if (!user.isVerified) {
-    throw new HttpError(403, "Please verify your email first");
+  const company = await CompanyModel.findById(user.companyId);
+  if (!company) {
+    throw ApiError.unauthorized("Invalid credentials");
+  }
+  if (company.status === CompanyStatus.PENDING) {
+    throw ApiError.forbidden("Your company registration is still pending approval");
+  }
+  if (company.status === CompanyStatus.REJECTED) {
+    throw ApiError.forbidden("Your company registration has been rejected");
+  }
+  if (!company.isActive) {
+    throw ApiError.forbidden("Your company account has been suspended");
   }
 
-  user.loginAttempts = 0;
+  user.lastLoginAt = new Date();
   await user.save();
 
-  const { accessToken, refreshToken } = await issueTokensAndPersistRefresh(user);
-  setRefreshTokenCookie(res, refreshToken);
+  const accessToken = await issueAuthTokens(res, {
+    sub: user._id.toString(),
+    email: user.email,
+    userType: UserType.USER,
+    companyId: user.companyId.toString(),
+    role: user.role,
+    ip: req.ip,
+  });
 
-  res.status(200).json({
-    success: true,
+  return sendSuccess(res, {
     message: "Login successful",
-    accessToken,
-    data: sanitizeUser(user),
+    data: { accessToken, user: sanitizeUser(user), company: companySummary(company) },
   });
 });
 
-export const refreshAccessToken = asyncHandler(async (req: Request, res: Response) => {
-  const refreshToken = req.cookies?.refreshToken;
-  if (!refreshToken) {
-    throw new HttpError(401, "Refresh token not found");
+export const superAdminLogin = asyncHandler(async (req: Request, res: Response) => {
+  const { email, password } = req.body;
+
+  const admin = await SuperAdminModel.findOne({ email }).select("+passwordHash");
+  if (!admin || !(await comparePassword(password, admin.passwordHash))) {
+    throw ApiError.unauthorized("Invalid credentials");
+  }
+  if (!admin.isActive) {
+    throw ApiError.forbidden("This account has been deactivated");
   }
 
-  let decoded: { userId: string; email: string };
-  try {
-    decoded = verifyRefreshToken(refreshToken);
-  } catch {
-    throw new HttpError(401, "Invalid refresh token");
-  }
+  admin.lastLoginAt = new Date();
+  await admin.save();
 
-  const user = await UserModel.findById(decoded.userId);
-  if (!user) {
-    throw new HttpError(404, "User not found");
-  }
-
-  if (!user.refreshToken || user.refreshToken !== refreshToken) {
-    throw new HttpError(401, "Refresh token mismatch");
-  }
-
-  if (!user.refreshTokenExpiry || user.refreshTokenExpiry.getTime() < Date.now()) {
-    throw new HttpError(401, "Refresh token expired");
-  }
-
-  const tokens = await issueTokensAndPersistRefresh(user);
-  setRefreshTokenCookie(res, tokens.refreshToken);
-
-  res.status(200).json({
-    success: true,
-    message: "Access token refreshed successfully",
-    accessToken: tokens.accessToken,
+  const accessToken = await issueAuthTokens(res, {
+    sub: admin._id.toString(),
+    email: admin.email,
+    userType: UserType.SUPER_ADMIN,
+    scope: PlatformScope.SUPER_ADMIN,
+    ip: req.ip,
   });
+
+  return sendSuccess(res, {
+    message: "Login successful",
+    data: {
+      accessToken,
+      superAdmin: { id: admin._id.toString(), name: admin.name, email: admin.email },
+    },
+  });
+});
+
+export const refresh = asyncHandler(async (req: Request, res: Response) => {
+  const presented = req.cookies?.refreshToken;
+  if (!presented) {
+    throw ApiError.unauthorized("Refresh token missing");
+  }
+
+  const accessToken = await rotateRefreshToken(res, presented, async (userId, userType) => {
+    if (userType === UserType.SUPER_ADMIN) {
+      const admin = await SuperAdminModel.findById(userId);
+      if (!admin || !admin.isActive) return null;
+      return {
+        sub: admin._id.toString(),
+        email: admin.email,
+        userType: UserType.SUPER_ADMIN,
+        scope: PlatformScope.SUPER_ADMIN,
+        ip: req.ip,
+      };
+    }
+
+    const user = await UserModel.findById(userId);
+    if (!user || !user.isActive) return null;
+    const company = await CompanyModel.findById(user.companyId).select("status isActive");
+    if (!company || company.status !== CompanyStatus.APPROVED || !company.isActive) return null;
+    return {
+      sub: user._id.toString(),
+      email: user.email,
+      userType: UserType.USER,
+      companyId: user.companyId.toString(),
+      role: user.role,
+      ip: req.ip,
+    };
+  });
+
+  if (!accessToken) {
+    clearRefreshTokenCookie(res);
+    throw ApiError.unauthorized("Invalid or expired refresh token");
+  }
+
+  return sendSuccess(res, { message: "Token refreshed", data: { accessToken } });
 });
 
 export const logout = asyncHandler(async (req: Request, res: Response) => {
-  const refreshToken = req.cookies?.refreshToken;
-  if (refreshToken) {
-    const user = await UserModel.findOne({ refreshToken });
-    if (user) {
-      user.refreshToken = undefined;
-      user.refreshTokenExpiry = undefined;
-      await user.save();
-    }
+  const presented = req.cookies?.refreshToken;
+  if (presented) {
+    await revokeRefreshToken(presented);
+  }
+  clearRefreshTokenCookie(res);
+  return sendSuccess(res, { message: "Logged out successfully" });
+});
+
+export const me = asyncHandler(async (req: Request, res: Response) => {
+  const principal = req.user;
+  if (!principal) {
+    throw ApiError.unauthorized("Authentication required");
   }
 
-  clearAuthCookie(res);
-  res.status(200).json({
-    success: true,
-    message: "Logged out successfully",
+  if (principal.scope === PlatformScope.SUPER_ADMIN) {
+    const admin = await SuperAdminModel.findById(principal.sub);
+    if (!admin) throw ApiError.notFound("Account not found");
+    return sendSuccess(res, {
+      data: {
+        type: "super_admin",
+        superAdmin: { id: admin._id.toString(), name: admin.name, email: admin.email },
+      },
+    });
+  }
+
+  const user = await UserModel.findById(principal.sub);
+  if (!user) throw ApiError.notFound("User not found");
+  const company = await CompanyModel.findById(user.companyId);
+  if (!company) throw ApiError.notFound("Company not found");
+
+  return sendSuccess(res, {
+    data: { type: "user", user: sanitizeUser(user), company: companySummary(company) },
   });
 });
 
-export const profile = asyncHandler(async (req: Request, res: Response) => {
-  if (!req.user) {
-    throw new HttpError(401, "Unauthorized");
+export const forgotPassword = asyncHandler(async (req: Request, res: Response) => {
+  const { email } = req.body;
+  const user = await UserModel.findOne({ email });
+
+  // Always respond success to avoid leaking which emails exist.
+  if (user && user.isActive) {
+    const rawToken = generateToken(24);
+    user.passwordResetTokenHash = hashToken(rawToken);
+    user.passwordResetExpiresAt = new Date(Date.now() + 60 * 60 * 1000);
+    await user.save();
+
+    await enqueueEmail({
+      job: EMAIL_JOBS.PASSWORD_RESET,
+      to: user.email,
+      name: user.name,
+      token: rawToken,
+      email: user.email,
+    });
   }
 
-  const user = await UserModel.findById(req.user.userId);
-  if (!user) {
-    throw new HttpError(404, "User not found");
-  }
-
-  res.status(200).json({
-    success: true,
-    data: sanitizeUser(user),
+  return sendSuccess(res, {
+    message: "If an account exists for that email, a reset link has been sent.",
   });
 });
 
 export const resetPassword = asyncHandler(async (req: Request, res: Response) => {
-  const { email } = req.body;
-  const user = await UserModel.findOne({ email });
+  const { token, email, newPassword } = req.body;
 
-  if (!user) {
-    throw new HttpError(404, "User not found");
+  const user = await UserModel.findOne({ email }).select(
+    "+passwordResetTokenHash +passwordResetExpiresAt",
+  );
+  if (
+    !user ||
+    !user.passwordResetTokenHash ||
+    user.passwordResetTokenHash !== hashToken(token) ||
+    !user.passwordResetExpiresAt ||
+    user.passwordResetExpiresAt.getTime() < Date.now()
+  ) {
+    throw ApiError.badRequest("Invalid or expired reset token");
   }
 
-  checkAndUpdateEmailRateLimit(user);
-
-  const otp = generateOtp();
-  user.otp = otp;
-  user.otpExpiry = otpExpiry();
-  user.otpPurpose = "reset_password";
+  user.passwordHash = await hashPassword(newPassword);
+  user.passwordResetTokenHash = undefined;
+  user.passwordResetExpiresAt = undefined;
   await user.save();
 
-  await addOtpEmailJob({
-    to: user.email,
-    subject: "Reset your password",
-    otp,
-    purpose: "reset_password",
-  });
+  // Invalidate all existing sessions for this user.
+  await revokeAllUserTokens(user._id.toString());
 
-  res.status(200).json({
-    success: true,
-    message: "Password reset OTP sent",
-  });
+  return sendSuccess(res, { message: "Password reset successful. Please log in." });
 });
 
-export const updatePassword = asyncHandler(async (req: Request, res: Response) => {
-  const { email, otp, newPassword } = req.body;
-  const user = await UserModel.findOne({ email });
+export const changePassword = asyncHandler(async (req: Request, res: Response) => {
+  const principal = req.user;
+  if (!principal || principal.scope === PlatformScope.SUPER_ADMIN) {
+    throw ApiError.forbidden("Only company users can change their password here");
+  }
+  const { currentPassword, newPassword } = req.body;
 
-  if (!user) {
-    throw new HttpError(404, "User not found");
+  const user = await UserModel.findById(principal.sub).select("+passwordHash");
+  if (!user) throw ApiError.notFound("User not found");
+
+  if (!(await comparePassword(currentPassword, user.passwordHash))) {
+    throw ApiError.badRequest("Current password is incorrect");
   }
 
-  if (!user.otp || !user.otpExpiry || user.otpPurpose !== "reset_password") {
-    throw new HttpError(400, "No reset OTP found");
-  }
-
-  if (user.otp !== otp) {
-    throw new HttpError(400, "Invalid OTP");
-  }
-
-  if (user.otpExpiry.getTime() < Date.now()) {
-    throw new HttpError(400, "OTP expired");
-  }
-
-  user.password = await hashPassword(newPassword);
-  user.otp = undefined;
-  user.otpExpiry = undefined;
-  user.otpPurpose = undefined;
-  user.refreshToken = undefined;
-  user.refreshTokenExpiry = undefined;
-  user.loginAttempts = 0;
-  user.isBlocked = false;
+  user.passwordHash = await hashPassword(newPassword);
   await user.save();
 
-  res.status(200).json({
-    success: true,
-    message: "Password updated successfully",
-  });
+  return sendSuccess(res, { message: "Password changed successfully" });
 });
+
+async function revokeAllUserTokens(userId: string) {
+  const { RefreshTokenModel } = await import("../models/refreshToken.model");
+  await RefreshTokenModel.updateMany({ userId, revoked: false }, { $set: { revoked: true } });
+}
