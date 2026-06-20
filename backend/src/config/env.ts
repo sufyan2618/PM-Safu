@@ -23,6 +23,12 @@ const envSchema = z.object({
   BREVO_SENDER_EMAIL: z.string().email("BREVO_SENDER_EMAIL must be a valid email"),
   BREVO_SENDER_NAME: z.string().default("Invoice & Payroll Platform"),
 
+  // Groq AI — optional so the app boots without it; AI endpoints degrade to 503 when unset.
+  GROQ_API_KEY: z.string().optional(),
+  GROQ_MODEL: z.string().default("openai/gpt-oss-120b"),
+  GROQ_MODEL_FAST: z.string().default("openai/gpt-oss-20b"),
+  AI_CACHE_TTL_SECONDS: z.coerce.number().default(86400),
+
   SUPERADMIN_SEED_EMAIL: z.string().email().optional(),
   SUPERADMIN_SEED_PASSWORD: z.string().min(8).optional(),
 

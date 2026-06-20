@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Eye, Save, Send } from 'lucide-react';
+import { Eye, Save, Send, Sparkles } from 'lucide-react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -12,6 +12,8 @@ import { Textarea } from '@/components/ui/Textarea';
 import { Tabs } from '@/components/ui/Tabs';
 import { InvoiceLineItemsEditor } from '@/components/domain/invoices/InvoiceLineItemsEditor';
 import { InvoicePreviewPane } from '@/components/domain/invoices/InvoicePreviewPane';
+import { AiInvoiceAssistant } from '@/components/domain/invoices/AiInvoiceAssistant';
+import { useAiStatus } from '@/hooks/queries/useAi';
 import { useClients } from '@/hooks/queries/useClients';
 import {
   useCreateInvoice,
@@ -24,6 +26,7 @@ import { useTaxRates } from '@/hooks/queries/useTaxRates';
 import { useToast } from '@/hooks/useToast';
 import { invoiceSchema, type InvoiceFormValues } from '@/constants/validation.constants';
 import { ROUTES } from '@/constants/routes.constants';
+import type { AiInvoiceDraft } from '@/types';
 
 const todayIso = new Date().toISOString().slice(0, 10);
 const dueIso = new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10);
@@ -34,6 +37,8 @@ export function InvoiceCreatePage() {
   const navigate = useNavigate();
   const toast = useToast();
   const [mobileTab, setMobileTab] = useState<'edit' | 'preview'>('edit');
+  const [aiOpen, setAiOpen] = useState(false);
+  const aiStatus = useAiStatus();
 
   const clients = useClients({ pageSize: 100 });
   const templates = useInvoiceTemplates();
@@ -115,6 +120,24 @@ export function InvoiceCreatePage() {
     }
   }
 
+  function handleAiApply(d: AiInvoiceDraft) {
+    reset({
+      ...values,
+      clientId: d.clientId ?? values.clientId,
+      dueDate: d.dueDate ?? values.dueDate,
+      notes: d.notes ?? values.notes,
+      lineItems:
+        d.items.length > 0
+          ? d.items.map((i) => ({
+              description: i.description,
+              quantity: i.quantity,
+              unitPrice: i.unitPrice,
+              taxRate: i.taxRate,
+            }))
+          : values.lineItems,
+    });
+  }
+
   const formColumn = (
     <form id="invoice-form" onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <Card>
@@ -154,6 +177,7 @@ export function InvoiceCreatePage() {
           register={register}
           setValue={setValue}
           taxRates={taxRates.data ?? []}
+          aiEnabled={aiStatus.data?.enabled}
           error={errors.lineItems?.message}
         />
       </Card>
@@ -189,6 +213,15 @@ export function InvoiceCreatePage() {
         breadcrumbs={[{ label: 'Invoices', to: ROUTES.INVOICES }, { label: isEdit ? 'Edit' : 'New' }]}
         actions={
           <>
+            {!isEdit && aiStatus.data?.enabled && (
+              <Button
+                variant="secondary"
+                leftIcon={<Sparkles size={16} />}
+                onClick={() => setAiOpen(true)}
+              >
+                Create with AI
+              </Button>
+            )}
             <Button variant="outline" onClick={() => navigate(ROUTES.INVOICES)}>
               Cancel
             </Button>
@@ -240,6 +273,17 @@ export function InvoiceCreatePage() {
           {previewColumn}
         </div>
       </div>
+
+      <AiInvoiceAssistant
+        open={aiOpen}
+        onClose={() => setAiOpen(false)}
+        clients={(clients.data?.items ?? []).map((c) => ({
+          id: c.id,
+          name: c.name,
+          companyName: c.companyName,
+        }))}
+        onApply={handleAiApply}
+      />
     </>
   );
 }

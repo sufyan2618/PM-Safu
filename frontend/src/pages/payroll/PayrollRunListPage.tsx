@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Play, Wallet } from 'lucide-react';
+import { MessageCircle, Play, Wallet } from 'lucide-react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { DataTable, type Column } from '@/components/ui/Table';
 import { StatusPill } from '@/components/domain/shared/StatusPill';
 import { ServerExportButton } from '@/components/domain/shared/ServerExportButton';
+import { PayrollChatDrawer } from '@/components/domain/payroll/PayrollChatDrawer';
+import { useAiStatus } from '@/hooks/queries/useAi';
 import { exportService } from '@/api/services/export.service';
 import { usePayrollRuns } from '@/hooks/queries/usePayroll';
 import { formatCurrency } from '@/utils/formatCurrency';
@@ -17,6 +19,8 @@ import type { PayrollRun } from '@/types';
 export function PayrollRunListPage() {
   const navigate = useNavigate();
   const [page, setPage] = useState(1);
+  const [chatOpen, setChatOpen] = useState(false);
+  const aiStatus = useAiStatus();
   const { data, isLoading } = usePayrollRuns({ page, pageSize: 8 });
 
   const columns: Column<PayrollRun>[] = [
@@ -60,6 +64,15 @@ export function PayrollRunListPage() {
         description="History of every pay period you've processed."
         actions={
           <>
+            {aiStatus.data?.enabled && (
+              <Button
+                variant="outline"
+                leftIcon={<MessageCircle size={16} />}
+                onClick={() => setChatOpen(true)}
+              >
+                Ask AI
+              </Button>
+            )}
             <ServerExportButton onExport={() => exportService.payroll()} />
             <Button leftIcon={<Play size={16} />} onClick={() => navigate(ROUTES.PAYROLL_NEW)}>
               Run payroll
@@ -88,6 +101,8 @@ export function PayrollRunListPage() {
           />
         }
       />
+
+      <PayrollChatDrawer open={chatOpen} onClose={() => setChatOpen(false)} />
     </>
   );
 }

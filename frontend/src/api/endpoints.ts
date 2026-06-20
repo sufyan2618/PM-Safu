@@ -119,6 +119,13 @@ export const ENDPOINTS = {
     payroll: '/export/payroll',
     salarySlips: '/export/salary-slips',
   },
+  ai: {
+    status: '/ai/status',
+    invoiceDraft: '/ai/invoice/draft',
+    invoiceDescribe: '/ai/invoice/describe',
+    payrollInsights: (id: string) => `/ai/payroll/${id}/insights`,
+    payrollChat: '/ai/payroll/chat',
+  },
   company: {
     me: '/company/me',
     setup: '/company/setup',

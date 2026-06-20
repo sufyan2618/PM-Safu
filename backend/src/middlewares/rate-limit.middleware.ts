@@ -25,3 +25,6 @@ export const globalRateLimiter = makeLimiter("rl:global:", 60 * 1000, 200);
 
 /** Tighter limit for authentication-sensitive endpoints. */
 export const authRateLimiter = makeLimiter("rl:auth:", 60 * 1000, 15);
+
+/** Protects the (token-metered, rate-limited) Groq AI endpoints from bursts. */
+export const aiRateLimiter = makeLimiter("rl:ai:", 60 * 1000, 20);

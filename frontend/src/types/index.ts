@@ -10,3 +10,4 @@ export * from './salarySlip.types';
 export * from './dashboard.types';
 export * from './audit.types';
 export * from './taxRate.types';
+export * from './ai.types';

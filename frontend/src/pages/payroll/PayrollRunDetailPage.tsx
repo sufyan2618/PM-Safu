@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { CheckCircle2, ReceiptText, Trash2 } from 'lucide-react';
+import { CheckCircle2, MessageCircle, ReceiptText, Trash2 } from 'lucide-react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -11,6 +11,9 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { DataTable, type Column } from '@/components/ui/Table';
 import { StatusPill } from '@/components/domain/shared/StatusPill';
 import { PayrollSummaryCard } from '@/components/domain/payroll/PayrollSummaryCard';
+import { AiPayrollInsights } from '@/components/domain/payroll/AiPayrollInsights';
+import { PayrollChatDrawer } from '@/components/domain/payroll/PayrollChatDrawer';
+import { useAiStatus } from '@/hooks/queries/useAi';
 import {
   useDeletePayroll,
   useFinalizePayroll,
@@ -31,7 +34,9 @@ export function PayrollRunDetailPage() {
   const { data: slips } = usePayrollSlips(id);
   const finalize = useFinalizePayroll();
   const remove = useDeletePayroll();
+  const aiStatus = useAiStatus();
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
 
   if (isLoading || !run) {
     return (
@@ -119,6 +124,15 @@ export function PayrollRunDetailPage() {
         actions={
           <div className="flex items-center gap-2">
             <StatusPill kind="payroll" status={run.status} size="md" />
+            {aiStatus.data?.enabled && (
+              <Button
+                variant="outline"
+                leftIcon={<MessageCircle size={16} />}
+                onClick={() => setChatOpen(true)}
+              >
+                Ask AI
+              </Button>
+            )}
             {canDelete && (
               <Button
                 variant="outline"
@@ -149,6 +163,12 @@ export function PayrollRunDetailPage() {
           employeeCount={run.totalEmployees}
         />
       </div>
+
+      {aiStatus.data?.enabled && (
+        <div className="mb-6">
+          <AiPayrollInsights payrollId={run.id} aiEnabled />
+        </div>
+      )}
 
       <Card>
         <CardHeader title="Salary slips" description={`${slips?.length ?? 0} generated`} ruled />
@@ -188,6 +208,8 @@ export function PayrollRunDetailPage() {
           <span className="font-medium text-ink-900">{formatPeriod(run.period)}</span>.
         </p>
       </Modal>
+
+      <PayrollChatDrawer open={chatOpen} onClose={() => setChatOpen(false)} payrollId={run.id} />
     </>
   );
 }

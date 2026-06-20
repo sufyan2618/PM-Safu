@@ -1,12 +1,16 @@
 import {
   useFieldArray,
+  useWatch,
   type Control,
   type UseFormRegister,
   type UseFormSetValue,
 } from 'react-hook-form';
-import { Plus, Trash2 } from 'lucide-react';
+import { Loader2, Plus, Sparkles, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { IconButton } from '@/components/ui/IconButton';
+import { useDescribeItem } from '@/hooks/queries/useAi';
+import { aiErrorMessage } from '@/api/services/ai.service';
+import { useToast } from '@/hooks/useToast';
 import type { InvoiceFormValues } from '@/constants/validation.constants';
 import type { TaxRate } from '@/types';
 
@@ -15,7 +19,72 @@ interface InvoiceLineItemsEditorProps {
   register: UseFormRegister<InvoiceFormValues>;
   setValue?: UseFormSetValue<InvoiceFormValues>;
   taxRates?: TaxRate[];
+  aiEnabled?: boolean;
   error?: string;
+}
+
+/** Description input with an optional AI button that expands a short item name into a polished line. */
+function DescriptionCell({
+  control,
+  register,
+  setValue,
+  index,
+  aiEnabled,
+}: {
+  control: Control<InvoiceFormValues>;
+  register: UseFormRegister<InvoiceFormValues>;
+  setValue?: UseFormSetValue<InvoiceFormValues>;
+  index: number;
+  aiEnabled: boolean;
+}) {
+  const toast = useToast();
+  const describe = useDescribeItem();
+  const description = useWatch({ control, name: `lineItems.${index}.description` });
+  const quantity = useWatch({ control, name: `lineItems.${index}.quantity` });
+
+  async function handleDescribe() {
+    if (!description || description.trim().length < 2) {
+      toast.info('Type a short item name first, then let AI expand it.');
+      return;
+    }
+    try {
+      const text = await describe.mutateAsync({
+        name: description,
+        hours: typeof quantity === 'number' && quantity > 0 ? quantity : undefined,
+      });
+      setValue?.(`lineItems.${index}.description`, text, {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+    } catch (err) {
+      toast.error(aiErrorMessage(err));
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-1">
+      <input
+        {...register(`lineItems.${index}.description`)}
+        placeholder="Service or product"
+        className="w-full rounded-md bg-transparent px-2 py-1.5 text-body-sm text-ink-900 placeholder:text-ink-400 focus:bg-sunken focus:outline-none"
+      />
+      {aiEnabled && setValue && (
+        <IconButton
+          label="Write description with AI"
+          size="sm"
+          icon={
+            describe.isPending ? (
+              <Loader2 size={15} strokeWidth={1.5} className="animate-spin" />
+            ) : (
+              <Sparkles size={15} strokeWidth={1.5} />
+            )
+          }
+          onClick={handleDescribe}
+          disabled={describe.isPending}
+        />
+      )}
+    </div>
+  );
 }
 
 export function InvoiceLineItemsEditor({
@@ -23,6 +92,7 @@ export function InvoiceLineItemsEditor({
   register,
   setValue,
   taxRates,
+  aiEnabled = false,
   error,
 }: InvoiceLineItemsEditorProps) {
   const { fields, append, remove } = useFieldArray({ control, name: 'lineItems' });
@@ -47,10 +117,12 @@ export function InvoiceLineItemsEditor({
             {fields.map((field, index) => (
               <tr key={field.id} className="border-b border-subtle last:border-0">
                 <td className="px-2 py-1.5">
-                  <input
-                    {...register(`lineItems.${index}.description`)}
-                    placeholder="Service or product"
-                    className="w-full rounded-md bg-transparent px-2 py-1.5 text-body-sm text-ink-900 placeholder:text-ink-400 focus:bg-sunken focus:outline-none"
+                  <DescriptionCell
+                    control={control}
+                    register={register}
+                    setValue={setValue}
+                    index={index}
+                    aiEnabled={aiEnabled}
                   />
                 </td>
                 <td className="px-2 py-1.5">
