@@ -27,6 +27,7 @@ export type ForgotPasswordFormValues = z.infer<typeof forgotPasswordSchema>;
 
 export const resetPasswordSchema = z
   .object({
+    email: z.string().email('Enter a valid email'),
     password: z.string().min(8, 'Password must be at least 8 characters'),
     confirmPassword: z.string(),
   })
@@ -35,6 +36,23 @@ export const resetPasswordSchema = z
     path: ['confirmPassword'],
   });
 export type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>;
+
+export const onboardingSchema = z.object({
+  legalName: z.string().min(2, 'Legal name is required'),
+  industry: z.string().optional(),
+  city: z.string().min(1, 'City is required'),
+  country: z.string().min(1, 'Country is required'),
+  line1: z.string().optional(),
+  state: z.string().optional(),
+  postalCode: z.string().optional(),
+  currency: z.string().min(1, 'Select a currency'),
+  phone: z.string().optional(),
+  website: z.string().url('Enter a valid URL').optional().or(z.literal('')),
+  taxId: z.string().optional(),
+  fiscalYearStartMonth: z.number().min(1).max(12),
+  brandColor: z.string().optional(),
+});
+export type OnboardingFormValues = z.infer<typeof onboardingSchema>;
 
 export const clientSchema = z.object({
   name: z.string().min(2, 'Client name is required'),
@@ -58,7 +76,7 @@ export const invoiceSchema = z.object({
   clientId: z.string().min(1, 'Select a client'),
   issueDate: z.string().min(1, 'Issue date is required'),
   dueDate: z.string().min(1, 'Due date is required'),
-  templateId: z.string().min(1, 'Select a template'),
+  templateId: z.string().optional(),
   notes: z.string().optional(),
   terms: z.string().optional(),
   lineItems: z.array(lineItemSchema).min(1, 'Add at least one line item'),
@@ -69,11 +87,12 @@ export const employeeSchema = z.object({
   name: z.string().min(2, 'Employee name is required'),
   email: z.string().email('Enter a valid email'),
   phone: z.string().optional(),
-  employeeCode: z.string().min(1, 'Employee code is required'),
+  employeeCode: z.string().optional(),
   departmentId: z.string().min(1, 'Select a department'),
   designation: z.string().min(1, 'Designation is required'),
   employmentType: z.enum(['full_time', 'part_time', 'contract']),
   joinDate: z.string().min(1, 'Join date is required'),
+  baseSalary: z.number({ message: 'Base salary is required' }).min(0, 'Must be 0 or more'),
 });
 export type EmployeeFormValues = z.infer<typeof employeeSchema>;
 
@@ -86,7 +105,7 @@ export type DepartmentFormValues = z.infer<typeof departmentSchema>;
 export const userInviteSchema = z.object({
   name: z.string().min(2, 'Name is required'),
   email: z.string().email('Enter a valid email'),
-  role: z.enum(['admin', 'manager', 'accountant', 'employee']),
+  role: z.enum(['company_admin', 'hr_manager', 'accountant', 'staff']),
 });
 export type UserInviteFormValues = z.infer<typeof userInviteSchema>;
 

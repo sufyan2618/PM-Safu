@@ -1,6 +1,7 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Link } from 'react-router-dom';
+import { AxiosError } from 'axios';
 import { AuthLayout } from './AuthLayout';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -26,16 +27,20 @@ export function RegisterPage() {
         email: values.email,
         password: values.password,
       });
-      toast.success('Account created', 'Your company workspace is ready.');
-    } catch {
-      toast.error('Registration failed', 'Please try again in a moment.');
+      toast.success('Registration submitted', 'Your company is pending approval.');
+    } catch (error) {
+      const message =
+        error instanceof AxiosError
+          ? (error.response?.data as { message?: string } | undefined)?.message
+          : undefined;
+      toast.error('Registration failed', message ?? 'Please try again in a moment.');
     }
   }
 
   return (
     <AuthLayout
-      title="Create your account"
-      subtitle="Set up your company workspace in under a minute."
+      title="Register your company"
+      subtitle="Create your workspace. Access is granted once an administrator approves your company."
       footer={
         <>
           Already have an account?{' '}

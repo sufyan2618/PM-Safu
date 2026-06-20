@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { ProtectedRoute } from './ProtectedRoute';
 import { RoleGuard } from './RoleGuard';
+import { OnboardingGuard, OnboardingRedirect } from './OnboardingGuard';
 import { AppShell } from '@/components/layout/AppShell';
 import { RouteFallback } from './RouteFallback';
 import { ROUTES } from '@/constants/routes.constants';
@@ -15,6 +16,9 @@ const ForgotPasswordPage = lazy(() =>
 );
 const ResetPasswordPage = lazy(() =>
   import('@/pages/auth/ResetPasswordPage').then((m) => ({ default: m.ResetPasswordPage })),
+);
+const OnboardingPage = lazy(() =>
+  import('@/pages/onboarding/OnboardingPage').then((m) => ({ default: m.OnboardingPage })),
 );
 const DashboardPage = lazy(() =>
   import('@/pages/dashboard/DashboardPage').then((m) => ({ default: m.DashboardPage })),
@@ -104,39 +108,49 @@ export function AppRouter() {
 
           {/* Authenticated app */}
           <Route element={<ProtectedRoute />}>
-            <Route element={<AppShell />}>
-              <Route path={ROUTES.DASHBOARD} element={<DashboardPage />} />
+            {/* Company onboarding (no shell) */}
+            <Route element={<OnboardingRedirect />}>
+              <Route path={ROUTES.ONBOARDING} element={<OnboardingPage />} />
+            </Route>
 
-              <Route path={ROUTES.INVOICES} element={<InvoiceListPage />} />
-              <Route path={ROUTES.INVOICE_CREATE} element={<InvoiceCreatePage />} />
-              <Route path={ROUTES.INVOICE_DESIGNER} element={<InvoiceDesignerPage />} />
-              <Route path={ROUTES.INVOICE_EDIT()} element={<InvoiceCreatePage />} />
-              <Route path={ROUTES.INVOICE_DETAIL()} element={<InvoiceDetailPage />} />
+            {/* Main app — requires a fully onboarded company */}
+            <Route element={<OnboardingGuard />}>
+              <Route element={<AppShell />}>
+                <Route path={ROUTES.DASHBOARD} element={<DashboardPage />} />
 
-              <Route path={ROUTES.CLIENTS} element={<ClientListPage />} />
-              <Route path={ROUTES.CLIENT_DETAIL()} element={<ClientDetailPage />} />
+                <Route element={<RoleGuard allow={['company_admin', 'accountant']} />}>
+                  <Route path={ROUTES.INVOICES} element={<InvoiceListPage />} />
+                  <Route path={ROUTES.INVOICE_CREATE} element={<InvoiceCreatePage />} />
+                  <Route path={ROUTES.INVOICE_DESIGNER} element={<InvoiceDesignerPage />} />
+                  <Route path={ROUTES.INVOICE_EDIT()} element={<InvoiceCreatePage />} />
+                  <Route path={ROUTES.INVOICE_DETAIL()} element={<InvoiceDetailPage />} />
 
-              <Route element={<RoleGuard allow={['admin', 'manager']} />}>
-                <Route path={ROUTES.DEPARTMENTS} element={<DepartmentsPage />} />
-                <Route path={ROUTES.EMPLOYEES} element={<EmployeeListPage />} />
-                <Route path={ROUTES.EMPLOYEE_DETAIL()} element={<EmployeeDetailPage />} />
-              </Route>
+                  <Route path={ROUTES.CLIENTS} element={<ClientListPage />} />
+                  <Route path={ROUTES.CLIENT_DETAIL()} element={<ClientDetailPage />} />
+                </Route>
 
-              <Route element={<RoleGuard allow={['admin', 'manager', 'accountant']} />}>
-                <Route path={ROUTES.PAYROLL_RUNS} element={<PayrollRunListPage />} />
-                <Route path={ROUTES.PAYROLL_NEW} element={<PayrollRunProcessPage />} />
-                <Route path={ROUTES.PAYROLL_PROCESS()} element={<PayrollRunProcessPage />} />
-                <Route path={ROUTES.REPORTS} element={<ReportsPage />} />
-              </Route>
+                <Route element={<RoleGuard allow={['company_admin', 'hr_manager']} />}>
+                  <Route path={ROUTES.DEPARTMENTS} element={<DepartmentsPage />} />
+                  <Route path={ROUTES.EMPLOYEES} element={<EmployeeListPage />} />
+                  <Route path={ROUTES.EMPLOYEE_DETAIL()} element={<EmployeeDetailPage />} />
+                  <Route path={ROUTES.PAYROLL_RUNS} element={<PayrollRunListPage />} />
+                  <Route path={ROUTES.PAYROLL_NEW} element={<PayrollRunProcessPage />} />
+                  <Route path={ROUTES.PAYROLL_PROCESS()} element={<PayrollRunProcessPage />} />
+                </Route>
 
-              <Route path={ROUTES.SALARY_SLIPS} element={<SalarySlipListPage />} />
-              <Route path={ROUTES.SALARY_SLIP_DETAIL()} element={<SalarySlipDetailPage />} />
+                <Route element={<RoleGuard allow={['company_admin', 'hr_manager', 'accountant']} />}>
+                  <Route path={ROUTES.REPORTS} element={<ReportsPage />} />
+                </Route>
 
-              <Route path={ROUTES.SETTINGS_PROFILE} element={<ProfileSettingsPage />} />
-              <Route element={<RoleGuard allow={['admin']} />}>
-                <Route path={ROUTES.SETTINGS_COMPANY} element={<CompanySettingsPage />} />
-                <Route path={ROUTES.SETTINGS_USERS} element={<UsersAndRolesPage />} />
-                <Route path={ROUTES.SETTINGS_BILLING} element={<BillingSettingsPage />} />
+                <Route path={ROUTES.SALARY_SLIPS} element={<SalarySlipListPage />} />
+                <Route path={ROUTES.SALARY_SLIP_DETAIL()} element={<SalarySlipDetailPage />} />
+
+                <Route path={ROUTES.SETTINGS_PROFILE} element={<ProfileSettingsPage />} />
+                <Route element={<RoleGuard allow={['company_admin']} />}>
+                  <Route path={ROUTES.SETTINGS_COMPANY} element={<CompanySettingsPage />} />
+                  <Route path={ROUTES.SETTINGS_USERS} element={<UsersAndRolesPage />} />
+                  <Route path={ROUTES.SETTINGS_BILLING} element={<BillingSettingsPage />} />
+                </Route>
               </Route>
             </Route>
           </Route>

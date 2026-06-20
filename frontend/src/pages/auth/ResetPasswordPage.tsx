@@ -21,14 +21,25 @@ export function ResetPasswordPage() {
   } = useForm<ResetPasswordFormValues>({ resolver: zodResolver(resetPasswordSchema) });
 
   async function onSubmit(values: ResetPasswordFormValues) {
-    await resetPassword({ token: token ?? '', password: values.password });
-    toast.success('Password updated', 'You can now sign in with your new password.');
-    navigate(ROUTES.LOGIN);
+    try {
+      await resetPassword({ token: token ?? '', email: values.email, newPassword: values.password });
+      toast.success('Password updated', 'You can now sign in with your new password.');
+      navigate(ROUTES.LOGIN);
+    } catch {
+      toast.error('Reset failed', 'Your reset link may have expired. Request a new one.');
+    }
   }
 
   return (
     <AuthLayout title="Set a new password" subtitle="Choose a strong password for your account.">
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+        <Input
+          label="Email"
+          type="email"
+          placeholder="you@company.com"
+          errorText={errors.email?.message}
+          {...register('email')}
+        />
         <Input
           label="New password"
           type="password"

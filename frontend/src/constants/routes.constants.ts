@@ -4,6 +4,8 @@ export const ROUTES = {
   FORGOT_PASSWORD: '/forgot-password',
   RESET_PASSWORD: '/reset-password/:token',
 
+  ONBOARDING: '/onboarding',
+
   DASHBOARD: '/',
 
   INVOICES: '/invoices',

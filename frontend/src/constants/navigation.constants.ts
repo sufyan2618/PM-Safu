@@ -34,20 +34,30 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     label: 'Billing',
     items: [
-      { label: 'Invoices', icon: FileText, path: ROUTES.INVOICES },
-      { label: 'Clients', icon: Users, path: ROUTES.CLIENTS },
-      { label: 'Invoice Designer', icon: Palette, path: ROUTES.INVOICE_DESIGNER },
+      { label: 'Invoices', icon: FileText, path: ROUTES.INVOICES, roles: ['company_admin', 'accountant'] },
+      { label: 'Clients', icon: Users, path: ROUTES.CLIENTS, roles: ['company_admin', 'accountant'] },
+      {
+        label: 'Invoice Designer',
+        icon: Palette,
+        path: ROUTES.INVOICE_DESIGNER,
+        roles: ['company_admin', 'accountant'],
+      },
     ],
   },
   {
     label: 'People',
     items: [
-      { label: 'Employees', icon: IdCard, path: ROUTES.EMPLOYEES, roles: ['admin', 'manager'] },
+      {
+        label: 'Employees',
+        icon: IdCard,
+        path: ROUTES.EMPLOYEES,
+        roles: ['company_admin', 'hr_manager'],
+      },
       {
         label: 'Departments',
         icon: Building2,
         path: ROUTES.DEPARTMENTS,
-        roles: ['admin', 'manager'],
+        roles: ['company_admin', 'hr_manager'],
       },
     ],
   },
@@ -58,7 +68,7 @@ export const NAV_SECTIONS: NavSection[] = [
         label: 'Payroll Runs',
         icon: Wallet,
         path: ROUTES.PAYROLL_RUNS,
-        roles: ['admin', 'manager', 'accountant'],
+        roles: ['company_admin', 'hr_manager'],
       },
       { label: 'Salary Slips', icon: ReceiptText, path: ROUTES.SALARY_SLIPS },
     ],
@@ -70,7 +80,7 @@ export const NAV_SECTIONS: NavSection[] = [
         label: 'Reports',
         icon: BarChart3,
         path: ROUTES.REPORTS,
-        roles: ['admin', 'manager', 'accountant'],
+        roles: ['company_admin', 'hr_manager', 'accountant'],
       },
     ],
   },

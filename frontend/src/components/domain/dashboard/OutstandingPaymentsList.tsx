@@ -19,8 +19,8 @@ export function OutstandingPaymentsList({ clients }: { clients: OutstandingClien
             <Avatar name={client.name} size="sm" />
             <div className="min-w-0 flex-1">
               <p className="truncate text-body-sm font-medium text-ink-900">{client.name}</p>
-              <p className="text-caption text-ink-400">
-                {client.invoiceCount} open invoice{client.invoiceCount > 1 ? 's' : ''}
+              <p className="truncate text-caption text-ink-400">
+                {client.companyName ?? 'Outstanding balance'}
               </p>
             </div>
             <span className="font-data text-body-sm font-medium text-danger-600">

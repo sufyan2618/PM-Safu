@@ -198,6 +198,13 @@ export function EmployeeListPage() {
             />
             <DatePicker label="Join date" errorText={errors.joinDate?.message} {...register('joinDate')} />
           </div>
+          <Input
+            label="Base salary (monthly)"
+            type="number"
+            isMono
+            errorText={errors.baseSalary?.message}
+            {...register('baseSalary', { valueAsNumber: true })}
+          />
         </form>
       </Drawer>
     </>

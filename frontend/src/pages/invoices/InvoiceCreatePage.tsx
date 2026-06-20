@@ -44,7 +44,7 @@ export function InvoiceCreatePage() {
       clientId: '',
       issueDate: todayIso,
       dueDate: dueIso,
-      templateId: 'tpl_001',
+      templateId: '',
       notes: 'Thank you for your business.',
       terms: 'Payment due within 14 days.',
       lineItems: [{ description: '', quantity: 1, unitPrice: 0, taxRate: 0 }],

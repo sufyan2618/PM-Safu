@@ -1,7 +1,8 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { Mail, Lock } from 'lucide-react';
+import { AxiosError } from 'axios';
 import { AuthLayout } from './AuthLayout';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -13,21 +14,26 @@ import { loginSchema, type LoginFormValues } from '@/constants/validation.consta
 export function LoginPage() {
   const { signIn } = useAuth();
   const toast = useToast();
+  const location = useLocation();
+  const justRegistered = (location.state as { registered?: boolean } | null)?.registered;
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { email: 'amelia@northwind.co', password: 'password' },
   });
 
   async function onSubmit(values: LoginFormValues) {
     try {
       await signIn(values);
       toast.success('Welcome back');
-    } catch {
-      toast.error('Unable to sign in', 'Check your credentials and try again.');
+    } catch (error) {
+      const message =
+        error instanceof AxiosError
+          ? (error.response?.data as { message?: string } | undefined)?.message
+          : undefined;
+      toast.error('Unable to sign in', message ?? 'Check your credentials and try again.');
     }
   }
 
@@ -44,6 +50,12 @@ export function LoginPage() {
         </>
       }
     >
+      {justRegistered && (
+        <div className="mb-5 rounded-lg border border-accent-600/30 bg-accent-100 px-4 py-3 text-body-sm text-ink-700">
+          Your company registration was submitted and is pending approval. We'll email you once it's
+          approved — then you can sign in.
+        </div>
+      )}
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
         <Input
           label="Email"

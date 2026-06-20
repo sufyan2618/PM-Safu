@@ -1,17 +1,17 @@
 import type { Role } from '@/types';
 
 export const ROLE_LABELS: Record<Role, string> = {
-  admin: 'Administrator',
-  manager: 'Manager',
+  company_admin: 'Administrator',
+  hr_manager: 'HR Manager',
   accountant: 'Accountant',
-  employee: 'Employee',
+  staff: 'Staff',
 };
 
 export const ROLE_PERMISSIONS: Record<Role, string[]> = {
-  admin: ['*'],
-  manager: ['invoices.*', 'employees.*', 'payroll.read', 'reports.read'],
-  accountant: ['invoices.*', 'payroll.*', 'reports.*'],
-  employee: ['salarySlips.read.self', 'profile.update.self'],
+  company_admin: ['*'],
+  hr_manager: ['employees.*', 'departments.*', 'payroll.*', 'reports.read'],
+  accountant: ['invoices.*', 'clients.*', 'templates.*', 'dashboard.read'],
+  staff: ['salarySlips.read.self', 'profile.update.self'],
 };
 
 export const ROLE_OPTIONS = (Object.keys(ROLE_LABELS) as Role[]).map((role) => ({

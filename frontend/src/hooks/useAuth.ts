@@ -11,22 +11,30 @@ import type {
 
 export function useAuth() {
   const navigate = useNavigate();
-  const { user, isAuthenticated, login, logout } = useAuthStore();
+  const user = useAuthStore((s) => s.user);
+  const company = useAuthStore((s) => s.company);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const setSession = useAuthStore((s) => s.setSession);
+  const logout = useAuthStore((s) => s.logout);
 
   return {
     user,
+    company,
     isAuthenticated,
     async signIn(payload: LoginPayload) {
       const result = await authService.login(payload);
-      login(result.user, result.token, result.onboardingCompleted);
-      navigate(ROUTES.DASHBOARD);
+      setSession({ user: result.user, token: result.accessToken, company: result.company });
+      navigate(result.company.onboardingCompleted ? ROUTES.DASHBOARD : ROUTES.ONBOARDING, {
+        replace: true,
+      });
       return result;
     },
     async signUp(payload: RegisterPayload) {
-      const result = await authService.register(payload);
-      login(result.user, result.token, result.onboardingCompleted);
-      navigate(ROUTES.DASHBOARD);
-      return result;
+      // Registration creates a *pending* company — no session is established until
+      // a super admin approves it, so we route back to login with a notice.
+      const summary = await authService.register(payload);
+      navigate(ROUTES.LOGIN, { replace: true, state: { registered: true } });
+      return summary;
     },
     async forgotPassword(payload: ForgotPasswordPayload) {
       await authService.forgotPassword(payload);
@@ -37,7 +45,7 @@ export function useAuth() {
     async signOut() {
       await authService.logout().catch(() => undefined);
       logout();
-      navigate(ROUTES.LOGIN);
+      navigate(ROUTES.LOGIN, { replace: true });
     },
   };
 }

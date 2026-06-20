@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { userService } from '@/api/services/user.service';
-import type { QueryParams, User } from '@/types';
+import type { QueryParams, Role } from '@/types';
 import type { UserInviteFormValues } from '@/constants/validation.constants';
 
 export function useUsers(params: QueryParams = {}) {
@@ -18,7 +18,8 @@ export function useCreateUser() {
 export function useUpdateUser(id: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (payload: Partial<User>) => userService.update(id, payload),
+    mutationFn: (payload: { name?: string; role?: Role; isActive?: boolean }) =>
+      userService.update(id, payload),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['users'] }),
   });
 }

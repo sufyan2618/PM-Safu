@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Palette } from 'lucide-react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardHeader } from '@/components/ui/Card';
@@ -9,6 +10,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { InvoiceTemplateCard } from '@/components/domain/invoices/InvoiceTemplateCard';
 import { InvoicePreviewPane } from '@/components/domain/invoices/InvoicePreviewPane';
 import { useInvoiceTemplates } from '@/hooks/queries/useInvoices';
+import { invoiceService } from '@/api/services/invoice.service';
 import { useToast } from '@/hooks/useToast';
 import type { InvoiceTemplate } from '@/types';
 
@@ -23,11 +25,27 @@ const SAMPLE_DUE_DATE = new Date(Date.now() + 14 * 86400000).toISOString();
 export function InvoiceDesignerPage() {
   const { data: templates, isLoading } = useInvoiceTemplates();
   const toast = useToast();
+  const queryClient = useQueryClient();
   const [edited, setEdited] = useState<InvoiceTemplate | null>(null);
+  const [saving, setSaving] = useState(false);
 
   // Effective template: an explicit edit, else the company default, else the first.
   const active = edited ?? templates?.find((t) => t.isDefault) ?? templates?.[0] ?? null;
   const setActive = setEdited;
+
+  async function handleSave() {
+    if (!active) return;
+    setSaving(true);
+    try {
+      await invoiceService.updateTemplate(active.id, active);
+      await queryClient.invalidateQueries({ queryKey: ['invoice-templates'] });
+      toast.success('Template saved');
+    } catch {
+      toast.error('Could not save template');
+    } finally {
+      setSaving(false);
+    }
+  }
 
   return (
     <>
@@ -35,7 +53,9 @@ export function InvoiceDesignerPage() {
         title="Invoice designer"
         description="Brand your invoices — colors, layout and logo apply everywhere."
         actions={
-          <Button onClick={() => toast.success('Template saved')}>Save template</Button>
+          <Button onClick={handleSave} isLoading={saving} disabled={!active}>
+            Save template
+          </Button>
         }
       />
 
