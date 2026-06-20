@@ -96,6 +96,10 @@ export const ENDPOINTS = {
     update: (id: string) => `/users/${id}`,
     remove: (id: string) => `/users/${id}`,
   },
+  auditLogs: {
+    list: '/audit-logs',
+    actions: '/audit-logs/actions',
+  },
   company: {
     me: '/company/me',
     setup: '/company/setup',

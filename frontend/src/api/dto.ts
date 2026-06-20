@@ -303,3 +303,22 @@ export interface ApiOutstandingClient {
   totalOutstanding: number;
   totalInvoiced: number;
 }
+
+export interface ApiAuditLog {
+  _id: string;
+  actorId?: string;
+  actorName?: string | null;
+  actorEmail?: string;
+  actorRole?: string;
+  action: string;
+  targetType?: string;
+  targetId?: string;
+  status: 'success' | 'failed';
+  statusCode?: number;
+  method?: string;
+  path?: string;
+  ipAddress?: string;
+  userAgent?: string;
+  metadata?: Record<string, unknown>;
+  createdAt: string;
+}

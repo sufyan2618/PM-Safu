@@ -10,6 +10,7 @@ import { comparePassword, hashPassword } from "../utils/password";
 import { issueAuthTokens, revokeRefreshToken, rotateRefreshToken } from "../utils/authTokens";
 import { clearRefreshTokenCookie, hashToken } from "../lib/token";
 import { generateToken } from "../utils/generateSlug";
+import { recordAudit } from "../utils/audit";
 import { enqueueEmail } from "../queues/email.queue";
 import type { ICompany } from "../models/company.model";
 import type { IUser } from "../models/user.model";
@@ -132,6 +133,21 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
     companyId: user.companyId.toString(),
     role: user.role,
     ip: req.ip,
+  });
+
+  await recordAudit({
+    companyId: user.companyId,
+    actorId: user._id,
+    actorType: UserType.USER,
+    actorName: user.name,
+    actorEmail: user.email,
+    actorRole: user.role,
+    action: "auth.login",
+    status: "success",
+    method: req.method,
+    path: req.originalUrl.split("?")[0],
+    ipAddress: req.ip,
+    userAgent: req.headers["user-agent"],
   });
 
   return sendSuccess(res, {

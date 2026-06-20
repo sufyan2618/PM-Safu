@@ -4,6 +4,7 @@
  * the app is insulated from server-side naming (`_id`, populated refs, etc.).
  */
 import type {
+  ApiAuditLog,
   ApiClient,
   ApiCompany,
   ApiDashboardOverview,
@@ -24,6 +25,7 @@ import type {
   ApiEnvelope,
   ApiMeta,
   Address,
+  AuditLog,
   Client,
   Company,
   CompanySummary,
@@ -473,5 +475,26 @@ export function mapOutstandingClient(dto: ApiOutstandingClient): OutstandingClie
     companyName: dto.companyNameOfClient,
     outstanding: dto.totalOutstanding,
     totalInvoiced: dto.totalInvoiced,
+  };
+}
+
+export function mapAuditLog(dto: ApiAuditLog): AuditLog {
+  return {
+    id: dto._id,
+    actorId: dto.actorId,
+    actorName: dto.actorName ?? undefined,
+    actorEmail: dto.actorEmail,
+    actorRole: dto.actorRole,
+    action: dto.action,
+    targetType: dto.targetType,
+    targetId: dto.targetId,
+    status: dto.status,
+    statusCode: dto.statusCode,
+    method: dto.method,
+    path: dto.path,
+    ipAddress: dto.ipAddress,
+    userAgent: dto.userAgent,
+    metadata: dto.metadata,
+    createdAt: dto.createdAt,
   };
 }

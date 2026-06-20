@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { SettingsNav } from './SettingsNav';
 import { Card, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -57,8 +56,7 @@ export function ProfileSettingsPage() {
 
   return (
     <>
-      <PageHeader title="Settings" description="Manage your account and company preferences." />
-      <SettingsNav />
+      <PageHeader title="Profile" description="Manage your personal account details." />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">

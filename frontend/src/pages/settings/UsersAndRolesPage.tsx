@@ -3,7 +3,6 @@ import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { MoreVertical, UserPlus } from 'lucide-react';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { SettingsNav } from './SettingsNav';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
@@ -154,15 +153,14 @@ export function UsersAndRolesPage() {
   return (
     <>
       <PageHeader
-        title="Settings"
-        description="Manage your account and company preferences."
+        title="Users & Roles"
+        description="Manage team members and their access."
         actions={
           <Button leftIcon={<UserPlus size={16} />} onClick={() => setOpen(true)}>
             Invite user
           </Button>
         }
       />
-      <SettingsNav />
 
       <DataTable
         columns={columns}

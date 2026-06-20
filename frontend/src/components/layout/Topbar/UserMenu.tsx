@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { ChevronDown, LogOut, Settings, User as UserIcon } from 'lucide-react';
+import { ChevronDown, LogOut, User as UserIcon } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
 import { Dropdown } from '@/components/ui/Dropdown';
 import { useAuth } from '@/hooks/useAuth';
@@ -36,11 +36,6 @@ export function UserMenu() {
           label: 'Profile',
           icon: <UserIcon size={16} strokeWidth={1.5} />,
           onClick: () => navigate(ROUTES.SETTINGS_PROFILE),
-        },
-        {
-          label: 'Settings',
-          icon: <Settings size={16} strokeWidth={1.5} />,
-          onClick: () => navigate(ROUTES.SETTINGS_COMPANY),
         },
         {
           label: 'Sign out',

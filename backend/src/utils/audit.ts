@@ -1,17 +1,25 @@
 import type { Types } from "mongoose";
 import type { UserType } from "../config/constants";
-import { AuditLogModel } from "../models/auditLog.model";
+import { AuditLogModel, type AuditStatus } from "../models/auditLog.model";
 import { logger } from "../lib/logger";
 
 interface AuditInput {
   companyId?: Types.ObjectId | string;
   actorId: Types.ObjectId | string;
   actorType: UserType;
+  actorName?: string;
+  actorEmail?: string;
+  actorRole?: string;
   action: string;
   targetType?: string;
   targetId?: Types.ObjectId | string;
-  metadata?: Record<string, unknown>;
+  status?: AuditStatus;
+  statusCode?: number;
+  method?: string;
+  path?: string;
   ipAddress?: string;
+  userAgent?: string;
+  metadata?: Record<string, unknown>;
 }
 
 /** Fire-and-forget audit log. Never throws — auditing must not break a request. */

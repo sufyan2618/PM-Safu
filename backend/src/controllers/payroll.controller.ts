@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import { Types } from "mongoose";
-import { EmployeeStatus, PAYROLL_JOBS, PayrollStatus, UserType } from "../config/constants";
+import { EmployeeStatus, PAYROLL_JOBS, PayrollStatus } from "../config/constants";
 import { env } from "../config/env";
 import { PayrollModel } from "../models/payroll.model";
 import { SalarySlipModel } from "../models/salarySlip.model";
@@ -11,7 +11,6 @@ import { sendCreated, sendSuccess } from "../utils/apiResponse";
 import { buildMeta, getPagination } from "../utils/pagination";
 import { processPayrollRun } from "../lib/payroll/processPayrollRun";
 import { enqueuePayrollRun } from "../queues/payroll.queue";
-import { recordAudit } from "../utils/audit";
 
 export const listPayroll = asyncHandler(async (req: Request, res: Response) => {
   const { page, limit, skip, sort } = getPagination(req.query);
@@ -61,17 +60,6 @@ export const processPayroll = asyncHandler(async (req: Request, res: Response) =
   if (activeCount === 0) {
     throw ApiError.badRequest("No active employees found for this payroll run");
   }
-
-  await recordAudit({
-    companyId,
-    actorId: req.user!.sub,
-    actorType: UserType.USER,
-    action: "payroll.processed",
-    targetType: "Payroll",
-    targetId: payroll._id,
-    metadata: { month, year, employeeCount: activeCount },
-    ipAddress: req.ip,
-  });
 
   // Large companies process in the background to keep the request snappy.
   if (activeCount > env.PAYROLL_SYNC_THRESHOLD) {

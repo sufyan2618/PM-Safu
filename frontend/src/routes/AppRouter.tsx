@@ -92,6 +92,9 @@ const UsersAndRolesPage = lazy(() =>
 const BillingSettingsPage = lazy(() =>
   import('@/pages/settings/BillingSettingsPage').then((m) => ({ default: m.BillingSettingsPage })),
 );
+const AuditLogPage = lazy(() =>
+  import('@/pages/settings/AuditLogPage').then((m) => ({ default: m.AuditLogPage })),
+);
 const NotFoundPage = lazy(() =>
   import('@/pages/misc/NotFoundPage').then((m) => ({ default: m.NotFoundPage })),
 );
@@ -161,6 +164,7 @@ export function AppRouter() {
                 <Route element={<RoleGuard allow={['company_admin']} />}>
                   <Route path={ROUTES.SETTINGS_COMPANY} element={<CompanySettingsPage />} />
                   <Route path={ROUTES.SETTINGS_USERS} element={<UsersAndRolesPage />} />
+                  <Route path={ROUTES.SETTINGS_AUDIT_LOG} element={<AuditLogPage />} />
                   <Route path={ROUTES.SETTINGS_BILLING} element={<BillingSettingsPage />} />
                 </Route>
               </Route>

@@ -12,12 +12,17 @@ import salaryStructureRouter from "./salaryStructure.router";
 import payrollRouter from "./payroll.router";
 import salarySlipRouter from "./salarySlip.router";
 import dashboardRouter from "./dashboard.router";
+import auditRouter from "./audit.router";
+import { auditLogger } from "../middlewares/audit.middleware";
 
 const apiRouter = Router();
 
 apiRouter.get("/health", (_req, res) => {
   res.status(200).json({ success: true, message: "Server is healthy", timestamp: new Date().toISOString() });
 });
+
+// Automatically audit every state-changing request by a company user.
+apiRouter.use(auditLogger);
 
 apiRouter.use("/auth", authRouter);
 apiRouter.use("/super-admin", superAdminRouter);
@@ -32,5 +37,6 @@ apiRouter.use("/salary-structures", salaryStructureRouter);
 apiRouter.use("/payroll", payrollRouter);
 apiRouter.use("/salary-slips", salarySlipRouter);
 apiRouter.use("/dashboard", dashboardRouter);
+apiRouter.use("/audit-logs", auditRouter);
 
 export default apiRouter;

@@ -6,10 +6,14 @@ import {
   Palette,
   IdCard,
   Building2,
+  Building,
   Wallet,
   ReceiptText,
   BarChart3,
   UserCircle,
+  ShieldCheck,
+  CreditCard,
+  ScrollText,
 } from 'lucide-react';
 import { ROUTES } from './routes.constants';
 import type { Role } from '@/types';
@@ -92,6 +96,26 @@ export const NAV_SECTIONS: NavSection[] = [
         path: ROUTES.REPORTS,
         roles: ['company_admin', 'hr_manager', 'accountant'],
       },
+    ],
+  },
+  {
+    label: 'Settings',
+    items: [
+      { label: 'Profile', icon: UserCircle, path: ROUTES.SETTINGS_PROFILE, roles: NON_STAFF },
+      { label: 'Company', icon: Building, path: ROUTES.SETTINGS_COMPANY, roles: ['company_admin'] },
+      {
+        label: 'Users & Roles',
+        icon: ShieldCheck,
+        path: ROUTES.SETTINGS_USERS,
+        roles: ['company_admin'],
+      },
+      {
+        label: 'Audit Log',
+        icon: ScrollText,
+        path: ROUTES.SETTINGS_AUDIT_LOG,
+        roles: ['company_admin'],
+      },
+      { label: 'Billing', icon: CreditCard, path: ROUTES.SETTINGS_BILLING, roles: ['company_admin'] },
     ],
   },
 ];

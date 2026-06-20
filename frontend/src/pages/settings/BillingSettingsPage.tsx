@@ -1,6 +1,5 @@
 import { Check } from 'lucide-react';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { SettingsNav } from './SettingsNav';
 import { Card, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -24,8 +23,7 @@ const PLANS = [
 export function BillingSettingsPage() {
   return (
     <>
-      <PageHeader title="Settings" description="Manage your account and company preferences." />
-      <SettingsNav />
+      <PageHeader title="Billing" description="Manage your subscription and payment details." />
 
       <Card className="mb-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

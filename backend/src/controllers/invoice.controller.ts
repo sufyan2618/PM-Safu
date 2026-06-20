@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 import type { Types } from "mongoose";
-import { EMAIL_JOBS, InvoiceStatus, PDF_JOBS, UserType } from "../config/constants";
+import { EMAIL_JOBS, InvoiceStatus, PDF_JOBS } from "../config/constants";
 import { env } from "../config/env";
 import { CompanyModel } from "../models/company.model";
 import { ClientModel } from "../models/client.model";
@@ -18,7 +18,6 @@ import { buildInvoiceRenderData } from "../lib/pdf/buildInvoiceRenderData";
 import { generateInvoicePdf } from "../lib/pdf/generateInvoicePdf";
 import { enqueueEmail } from "../queues/email.queue";
 import { enqueuePdf } from "../queues/pdf.queue";
-import { recordAudit } from "../utils/audit";
 
 function applyPaymentStatus(invoice: IInvoice) {
   invoice.amountDue = Math.max(invoice.grandTotal - invoice.amountPaid, 0);
@@ -267,16 +266,6 @@ export const sendInvoice = asyncHandler(async (req: Request, res: Response) => {
   }
 
   await enqueuePdf({ job: PDF_JOBS.INVOICE, invoiceId: invoice._id.toString() });
-
-  await recordAudit({
-    companyId: req.companyId,
-    actorId: req.user!.sub,
-    actorType: UserType.USER,
-    action: "invoice.sent",
-    targetType: "Invoice",
-    targetId: invoice._id,
-    ipAddress: req.ip,
-  });
 
   return sendSuccess(res, {
     message: client?.email ? "Invoice sent to client" : "Invoice marked as sent (client has no email)",

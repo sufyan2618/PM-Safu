@@ -2,7 +2,6 @@ import { useEffect } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { SettingsNav } from './SettingsNav';
 import { Card, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -80,8 +79,7 @@ export function CompanySettingsPage() {
 
   return (
     <>
-      <PageHeader title="Settings" description="Manage your account and company preferences." />
-      <SettingsNav />
+      <PageHeader title="Company" description="Manage your company profile and preferences." />
 
       {isLoading ? (
         <Skeleton className="h-96 rounded-xl" />

@@ -37,6 +37,7 @@ export const ROUTES = {
   SETTINGS_COMPANY: '/settings/company',
   SETTINGS_USERS: '/settings/users',
   SETTINGS_BILLING: '/settings/billing',
+  SETTINGS_AUDIT_LOG: '/settings/audit-log',
 
   UNAUTHORIZED: '/unauthorized',
 } as const;
