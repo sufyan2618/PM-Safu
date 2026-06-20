@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -13,7 +13,13 @@ import { Tabs } from '@/components/ui/Tabs';
 import { InvoiceLineItemsEditor } from '@/components/domain/invoices/InvoiceLineItemsEditor';
 import { InvoicePreviewPane } from '@/components/domain/invoices/InvoicePreviewPane';
 import { useClients } from '@/hooks/queries/useClients';
-import { useCreateInvoice, useInvoiceTemplates } from '@/hooks/queries/useInvoices';
+import {
+  useCreateInvoice,
+  useInvoice,
+  useInvoiceTemplates,
+  useUpdateInvoice,
+} from '@/hooks/queries/useInvoices';
+import { invoiceService } from '@/api/services/invoice.service';
 import { useToast } from '@/hooks/useToast';
 import { invoiceSchema, type InvoiceFormValues } from '@/constants/validation.constants';
 import { ROUTES } from '@/constants/routes.constants';
@@ -31,12 +37,16 @@ export function InvoiceCreatePage() {
   const clients = useClients({ pageSize: 100 });
   const templates = useInvoiceTemplates();
   const createInvoice = useCreateInvoice();
+  const updateInvoice = useUpdateInvoice(id ?? '');
+  const existing = useInvoice(isEdit ? id : undefined);
+  const sendAfterSave = useRef(false);
 
   const {
     register,
     control,
     handleSubmit,
     setValue,
+    reset,
     formState: { errors, isSubmitting },
   } = useForm<InvoiceFormValues>({
     resolver: zodResolver(invoiceSchema),
@@ -51,6 +61,26 @@ export function InvoiceCreatePage() {
     },
   });
 
+  // Prefill the form when editing an existing invoice.
+  useEffect(() => {
+    const invoice = existing.data;
+    if (!isEdit || !invoice) return;
+    reset({
+      clientId: invoice.clientId,
+      issueDate: invoice.issueDate.slice(0, 10),
+      dueDate: invoice.dueDate.slice(0, 10),
+      templateId: invoice.templateId ?? '',
+      notes: invoice.notes ?? '',
+      terms: invoice.terms ?? '',
+      lineItems: invoice.lineItems.map((item) => ({
+        description: item.description,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        taxRate: item.taxRate ?? 0,
+      })),
+    });
+  }, [existing.data, isEdit, reset]);
+
   const values = useWatch({ control }) as InvoiceFormValues;
   const selectedClient = clients.data?.items.find((c) => c.id === values.clientId);
   const selectedTemplate = templates.data?.find((t) => t.id === values.templateId) ?? null;
@@ -64,12 +94,22 @@ export function InvoiceCreatePage() {
   }, [templates.data, values.templateId, setValue]);
 
   async function onSubmit(formValues: InvoiceFormValues) {
+    const shouldSend = sendAfterSave.current;
+    sendAfterSave.current = false;
     try {
-      await createInvoice.mutateAsync(formValues);
-      toast.success(isEdit ? 'Invoice updated' : 'Invoice created');
-      navigate(ROUTES.INVOICES);
+      const saved = isEdit
+        ? await updateInvoice.mutateAsync(formValues)
+        : await createInvoice.mutateAsync(formValues);
+      if (shouldSend) {
+        await invoiceService.send(saved.id);
+        toast.success('Invoice saved & sent');
+        navigate(ROUTES.INVOICE_DETAIL(saved.id));
+      } else {
+        toast.success(isEdit ? 'Invoice updated' : 'Invoice created');
+        navigate(ROUTES.INVOICES);
+      }
     } catch {
-      toast.error('Could not save invoice');
+      toast.error(shouldSend ? 'Could not save & send invoice' : 'Could not save invoice');
     }
   }
 
@@ -153,8 +193,11 @@ export function InvoiceCreatePage() {
               form="invoice-form"
               leftIcon={<Save size={16} />}
               isLoading={isSubmitting}
+              onClick={() => {
+                sendAfterSave.current = false;
+              }}
             >
-              Save draft
+              {isEdit ? 'Save changes' : 'Save draft'}
             </Button>
             <Button
               type="submit"
@@ -162,6 +205,9 @@ export function InvoiceCreatePage() {
               variant="secondary"
               leftIcon={<Send size={16} />}
               isLoading={isSubmitting}
+              onClick={() => {
+                sendAfterSave.current = true;
+              }}
             >
               Save & send
             </Button>

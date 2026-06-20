@@ -12,6 +12,11 @@ const TABS = [
 
 export function SettingsNav() {
   const role = useAuthStore((s) => s.user?.role);
+
+  // Staff are self-service users with only their own profile — a single-tab nav
+  // is just noise, so hide the settings sub-nav entirely for them.
+  if (role === 'staff') return null;
+
   const tabs = TABS.filter((t) => !t.adminOnly || role === 'company_admin');
 
   return (

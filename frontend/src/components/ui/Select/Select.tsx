@@ -1,7 +1,7 @@
-import { useId, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Check, ChevronDown, Search } from 'lucide-react';
 import { cn } from '@/utils/cn';
-import { useClickOutside } from '@/hooks/useClickOutside';
 
 export interface SelectOption<T = string> {
   label: string;
@@ -23,6 +23,20 @@ export interface SelectProps<T extends string = string> {
   className?: string;
 }
 
+interface MenuPosition {
+  left: number;
+  width: number;
+  /** Distance from the top of the viewport when opening downward. */
+  top: number;
+  /** Distance from the bottom of the viewport when opening upward. */
+  bottom: number;
+  openUp: boolean;
+  maxHeight: number;
+}
+
+const GAP = 4;
+const DESIRED_MENU_HEIGHT = 280;
+
 export function Select<T extends string = string>({
   options,
   value,
@@ -37,9 +51,11 @@ export function Select<T extends string = string>({
 }: SelectProps<T>) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
+  const [menu, setMenu] = useState<MenuPosition | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const fieldId = useId();
-  useClickOutside(containerRef, () => setOpen(false), open);
 
   const selectedValues = useMemo<T[]>(
     () => (Array.isArray(value) ? value : value !== undefined ? [value] : []),
@@ -56,6 +72,54 @@ export function Select<T extends string = string>({
     if (multiple) return `${selectedValues.length} selected`;
     return options.find((o) => o.value === selectedValues[0])?.label ?? placeholder;
   }, [selectedValues, options, multiple, placeholder]);
+
+  // Position the floating menu relative to the trigger, flipping above when
+  // there isn't enough room below (e.g. inside a short modal).
+  useLayoutEffect(() => {
+    if (!open) return;
+
+    function reposition() {
+      const btn = buttonRef.current;
+      if (!btn) return;
+      const rect = btn.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      const openUp = spaceBelow < DESIRED_MENU_HEIGHT && spaceAbove > spaceBelow;
+      const available = (openUp ? spaceAbove : spaceBelow) - GAP - 8;
+      setMenu({
+        left: rect.left,
+        width: rect.width,
+        top: rect.bottom,
+        bottom: window.innerHeight - rect.top,
+        openUp,
+        maxHeight: Math.max(120, Math.min(DESIRED_MENU_HEIGHT, available)),
+      });
+    }
+
+    reposition();
+    window.addEventListener('resize', reposition);
+    window.addEventListener('scroll', reposition, true);
+    return () => {
+      window.removeEventListener('resize', reposition);
+      window.removeEventListener('scroll', reposition, true);
+    };
+  }, [open]);
+
+  // Close on outside interaction, accounting for the portalled menu.
+  useEffect(() => {
+    if (!open) return;
+    function onDown(event: MouseEvent | TouchEvent) {
+      const target = event.target as Node;
+      if (containerRef.current?.contains(target) || menuRef.current?.contains(target)) return;
+      setOpen(false);
+    }
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('touchstart', onDown);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('touchstart', onDown);
+    };
+  }, [open]);
 
   function handleSelect(optionValue: T) {
     if (multiple) {
@@ -81,6 +145,7 @@ export function Select<T extends string = string>({
       )}
       <div className="relative">
         <button
+          ref={buttonRef}
           id={fieldId}
           type="button"
           disabled={disabled}
@@ -104,59 +169,77 @@ export function Select<T extends string = string>({
           />
         </button>
 
-        {open && (
-          <div className="absolute z-50 mt-1 w-full overflow-hidden rounded-lg border border-subtle bg-surface shadow-popover">
-            {searchable && (
-              <div className="flex items-center gap-2 border-b border-subtle px-3 py-2">
-                <Search size={15} strokeWidth={1.5} className="text-ink-400" />
-                <input
-                  autoFocus
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search…"
-                  className="w-full bg-transparent text-body-sm text-ink-900 placeholder:text-ink-400 focus:outline-none"
-                />
-              </div>
-            )}
-            <ul role="listbox" className="max-h-60 overflow-auto py-1">
-              {filtered.length === 0 ? (
-                <li className="px-3 py-2 text-body-sm text-ink-400">No options found</li>
-              ) : (
-                filtered.map((option) => {
-                  const isSelected = selectedValues.includes(option.value);
-                  return (
-                    <li key={String(option.value)}>
-                      <button
-                        type="button"
-                        role="option"
-                        aria-selected={isSelected}
-                        disabled={option.disabled}
-                        onClick={() => handleSelect(option.value)}
-                        className={cn(
-                          'flex w-full items-start justify-between gap-2 px-3 py-2 text-left text-body-sm transition-colors',
-                          'hover:bg-sunken disabled:cursor-not-allowed disabled:opacity-50',
-                          isSelected && 'bg-accent-100',
-                        )}
-                      >
-                        <span className="min-w-0">
-                          <span className="block truncate text-ink-900">{option.label}</span>
-                          {option.description && (
-                            <span className="block truncate text-caption text-ink-400">
-                              {option.description}
-                            </span>
-                          )}
-                        </span>
-                        {isSelected && (
-                          <Check size={15} strokeWidth={2} className="mt-0.5 shrink-0 text-accent-600" />
-                        )}
-                      </button>
-                    </li>
-                  );
-                })
+        {open &&
+          menu &&
+          createPortal(
+            <div
+              ref={menuRef}
+              style={{
+                position: 'fixed',
+                left: menu.left,
+                width: menu.width,
+                ...(menu.openUp
+                  ? { bottom: menu.bottom + GAP }
+                  : { top: menu.top + GAP }),
+              }}
+              className="z-100 overflow-hidden rounded-lg border border-subtle bg-surface shadow-popover"
+            >
+              {searchable && (
+                <div className="flex items-center gap-2 border-b border-subtle px-3 py-2">
+                  <Search size={15} strokeWidth={1.5} className="text-ink-400" />
+                  <input
+                    autoFocus
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Search…"
+                    className="w-full bg-transparent text-body-sm text-ink-900 placeholder:text-ink-400 focus:outline-none"
+                  />
+                </div>
               )}
-            </ul>
-          </div>
-        )}
+              <ul
+                role="listbox"
+                className="overflow-auto py-1"
+                style={{ maxHeight: menu.maxHeight }}
+              >
+                {filtered.length === 0 ? (
+                  <li className="px-3 py-2 text-body-sm text-ink-400">No options found</li>
+                ) : (
+                  filtered.map((option) => {
+                    const isSelected = selectedValues.includes(option.value);
+                    return (
+                      <li key={String(option.value)}>
+                        <button
+                          type="button"
+                          role="option"
+                          aria-selected={isSelected}
+                          disabled={option.disabled}
+                          onClick={() => handleSelect(option.value)}
+                          className={cn(
+                            'flex w-full items-start justify-between gap-2 px-3 py-2 text-left text-body-sm transition-colors',
+                            'hover:bg-sunken disabled:cursor-not-allowed disabled:opacity-50',
+                            isSelected && 'bg-accent-100',
+                          )}
+                        >
+                          <span className="min-w-0">
+                            <span className="block truncate text-ink-900">{option.label}</span>
+                            {option.description && (
+                              <span className="block truncate text-caption text-ink-400">
+                                {option.description}
+                              </span>
+                            )}
+                          </span>
+                          {isSelected && (
+                            <Check size={15} strokeWidth={2} className="mt-0.5 shrink-0 text-accent-600" />
+                          )}
+                        </button>
+                      </li>
+                    );
+                  })
+                )}
+              </ul>
+            </div>,
+            document.body,
+          )}
       </div>
       {errorText && <p className="mt-1.5 text-caption text-danger-600">{errorText}</p>}
     </div>

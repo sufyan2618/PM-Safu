@@ -83,6 +83,8 @@ export function InvoicePreviewPane({
   const logoUrl = branding?.logoUrl ?? company?.logoUrl;
   const showLogo = branding?.showLogo !== false;
   const companyName = company?.companyName ?? 'Your Company';
+  const companyAddress = (company as { address?: { city?: string; country?: string } } | null)
+    ?.address;
 
   const subtotal = lineItems.reduce((s, li) => s + li.quantity * li.unitPrice, 0);
   const taxTotal = lineItems.reduce(
@@ -90,7 +92,7 @@ export function InvoicePreviewPane({
     0,
   );
   const total = subtotal + taxTotal;
-  const fmt = (v: number) => formatCurrency(v, currency);
+  const fmt = (v: number) => formatCurrency(v, { currency });
 
   const visibleColumns: ItemColumn[] = sections?.itemsTable?.columns?.filter((c) => c.visible) ?? [
     { key: 'description', label: 'Description', visible: true, width: '40%' },
@@ -99,7 +101,7 @@ export function InvoicePreviewPane({
     { key: 'amount', label: 'Amount', visible: true, width: '20%' },
   ];
 
-  function cellValue(col: ItemColumn, li: PreviewLineItem, i: number) {
+  function cellValue(col: ItemColumn, li: PreviewLineItem, _i: number) {
     switch (col.key) {
       case 'description': return li.description || 'Item description';
       case 'quantity': return li.quantity;
@@ -148,9 +150,9 @@ export function InvoicePreviewPane({
       <p className="font-semibold" style={{ color: secondary, fontSize: baseSize + 1 }}>
         {companyName}
       </p>
-      {company?.address && (
+      {companyAddress && (
         <p style={{ fontSize: baseSize - 1, color: `${secondary}88` }}>
-          {[company.address.city, company.address.country].filter(Boolean).join(', ')}
+          {[companyAddress.city, companyAddress.country].filter(Boolean).join(', ')}
         </p>
       )}
     </div>
@@ -246,9 +248,9 @@ export function InvoicePreviewPane({
               <p className="font-semibold" style={{ color: secondary, fontSize: baseSize + 2 }}>
                 {companyName}
               </p>
-              {company?.address && (
+              {companyAddress && (
                 <p style={{ fontSize: baseSize - 1, color: `${secondary}88` }}>
-                  {[company.address.city, company.address.country].filter(Boolean).join(', ')}
+                  {[companyAddress.city, companyAddress.country].filter(Boolean).join(', ')}
                 </p>
               )}
               <div className="mt-1">{titleBlock('center')}</div>

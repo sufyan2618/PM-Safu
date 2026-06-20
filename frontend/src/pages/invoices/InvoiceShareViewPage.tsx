@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Download } from 'lucide-react';
 import { Brand } from '@/components/layout/Brand';
@@ -6,11 +7,27 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { StatusPill } from '@/components/domain/shared/StatusPill';
 import { InvoicePreviewPane } from '@/components/domain/invoices/InvoicePreviewPane';
 import { useSharedInvoice } from '@/hooks/queries/useInvoices';
+import { invoiceService } from '@/api/services/invoice.service';
+import { useToast } from '@/hooks/useToast';
 import { formatCurrency } from '@/utils/formatCurrency';
 
 export function InvoiceShareViewPage() {
   const { token } = useParams<{ token: string }>();
+  const toast = useToast();
   const { data: invoice, isLoading } = useSharedInvoice(token);
+  const [downloading, setDownloading] = useState(false);
+
+  async function downloadPdf() {
+    if (!token || !invoice) return;
+    setDownloading(true);
+    try {
+      await invoiceService.downloadSharePdf(token, `${invoice.invoiceNumber}.pdf`);
+    } catch {
+      toast.error('Could not download PDF');
+    } finally {
+      setDownloading(false);
+    }
+  }
 
   return (
     <div className="min-h-dvh bg-canvas">
@@ -37,10 +54,14 @@ export function InvoiceShareViewPage() {
                 </p>
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" leftIcon={<Download size={16} />}>
+                <Button
+                  variant="outline"
+                  leftIcon={<Download size={16} />}
+                  isLoading={downloading}
+                  onClick={downloadPdf}
+                >
                   Download PDF
                 </Button>
-                {invoice.amountDue > 0 && <Button>Pay now</Button>}
               </div>
             </div>
             <InvoicePreviewPane

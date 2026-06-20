@@ -208,7 +208,7 @@ export function ReportsPage() {
                     <Cell key={entry.status} fill={STATUS_COLORS[entry.status] ?? '#9CA3AF'} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                <Tooltip formatter={(value) => formatCurrency(Number(value))} />
                 <Legend
                   iconType="circle"
                   formatter={(value: string) => (

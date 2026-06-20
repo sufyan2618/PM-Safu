@@ -84,20 +84,16 @@ export async function generateFinancialReportPdf(data: FinancialReportRenderData
   doc.moveDown(0.5);
 
   const tableTop = doc.y;
-  const cols = [
-    { label: "Status", x: left, w: width * 0.34, align: "left" as const },
-    { label: "Count", x: left + width * 0.34, w: width * 0.16, align: "right" as const },
-    { label: "Total", x: left + width * 0.5, w: width * 0.25, align: "right" as const },
-    { label: "Due", x: left + width * 0.75, w: width * 0.25, align: "right" as const },
-  ];
+  const cStatus = { x: left, w: width * 0.34 };
+  const cCount = { x: left + width * 0.34, w: width * 0.16 };
+  const cTotal = { x: left + width * 0.5, w: width * 0.25 };
+  const cDue = { x: left + width * 0.75, w: width * 0.25 };
   doc.rect(left, tableTop, width, 20).fill("#F1F5F9");
   doc.fillColor(SECONDARY).fontSize(9).font("Helvetica-Bold");
-  cols.forEach((c) =>
-    doc.text(c.label, c.x + (c.align === "left" ? 8 : 0), tableTop + 6, {
-      width: c.w - 8,
-      align: c.align,
-    }),
-  );
+  doc.text("Status", cStatus.x + 8, tableTop + 6, { width: cStatus.w - 8 });
+  doc.text("Count", cCount.x, tableTop + 6, { width: cCount.w - 8, align: "right" });
+  doc.text("Total", cTotal.x, tableTop + 6, { width: cTotal.w - 8, align: "right" });
+  doc.text("Due", cDue.x, tableTop + 6, { width: cDue.w - 8, align: "right" });
 
   let y = tableTop + 20;
   doc.font("Helvetica").fontSize(9).fillColor(TEXT);
@@ -107,10 +103,10 @@ export async function generateFinancialReportPdf(data: FinancialReportRenderData
   } else {
     for (const row of data.statusBreakdown) {
       doc.fillColor(TEXT).font("Helvetica");
-      doc.text(formatStatus(row._id), cols[0].x + 8, y + 6, { width: cols[0].w - 8 });
-      doc.text(String(row.count), cols[1].x, y + 6, { width: cols[1].w - 8, align: "right" });
-      doc.text(fmt(row.totalAmount), cols[2].x, y + 6, { width: cols[2].w - 8, align: "right" });
-      doc.text(fmt(row.amountDue), cols[3].x, y + 6, { width: cols[3].w - 8, align: "right" });
+      doc.text(formatStatus(row._id), cStatus.x + 8, y + 6, { width: cStatus.w - 8 });
+      doc.text(String(row.count), cCount.x, y + 6, { width: cCount.w - 8, align: "right" });
+      doc.text(fmt(row.totalAmount), cTotal.x, y + 6, { width: cTotal.w - 8, align: "right" });
+      doc.text(fmt(row.amountDue), cDue.x, y + 6, { width: cDue.w - 8, align: "right" });
       y += 20;
       doc.moveTo(left, y).lineTo(right, y).strokeColor("#E5E7EB").lineWidth(1).stroke();
     }

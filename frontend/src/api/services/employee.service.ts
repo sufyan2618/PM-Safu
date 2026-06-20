@@ -19,6 +19,10 @@ interface EmployeeListParams extends QueryParams {
   status?: EmployeeStatus | string;
 }
 
+export type DepartmentUpdatePayload = Partial<DepartmentFormValues> & {
+  headOfDepartment?: string | null;
+};
+
 function splitName(name: string): { firstName: string; lastName: string } {
   const parts = name.trim().split(/\s+/);
   const firstName = parts.shift() ?? name;
@@ -103,7 +107,7 @@ export const departmentService = {
     return mapDepartment(data.data);
   },
 
-  async update(id: string, payload: Partial<DepartmentFormValues>): Promise<Department> {
+  async update(id: string, payload: DepartmentUpdatePayload): Promise<Department> {
     const { data } = await axiosClient.patch<ApiEnvelope<ApiDepartment>>(
       ENDPOINTS.departments.update(id),
       payload,

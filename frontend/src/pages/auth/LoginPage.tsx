@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Link, useLocation } from 'react-router-dom';
@@ -8,14 +9,22 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/useToast';
+import { authService } from '@/api/services/auth.service';
 import { ROUTES } from '@/constants/routes.constants';
 import { loginSchema, type LoginFormValues } from '@/constants/validation.constants';
+
+interface ApiErrorBody {
+  message?: string;
+  errors?: { field: string; message: string }[];
+}
 
 export function LoginPage() {
   const { signIn } = useAuth();
   const toast = useToast();
   const location = useLocation();
   const justRegistered = (location.state as { registered?: boolean } | null)?.registered;
+  const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
+  const [resending, setResending] = useState(false);
   const {
     register,
     handleSubmit,
@@ -25,15 +34,35 @@ export function LoginPage() {
   });
 
   async function onSubmit(values: LoginFormValues) {
+    setUnverifiedEmail(null);
     try {
       await signIn(values);
       toast.success('Welcome back');
     } catch (error) {
-      const message =
+      const body =
         error instanceof AxiosError
-          ? (error.response?.data as { message?: string } | undefined)?.message
+          ? (error.response?.data as ApiErrorBody | undefined)
           : undefined;
-      toast.error('Unable to sign in', message ?? 'Check your credentials and try again.');
+      const notVerified = body?.errors?.some((e) => e.message === 'EMAIL_NOT_VERIFIED');
+      if (notVerified) {
+        setUnverifiedEmail(values.email);
+        toast.error('Email not verified', 'Please verify your email before signing in.');
+        return;
+      }
+      toast.error('Unable to sign in', body?.message ?? 'Check your credentials and try again.');
+    }
+  }
+
+  async function handleResend() {
+    if (!unverifiedEmail) return;
+    setResending(true);
+    try {
+      await authService.resendVerification(unverifiedEmail);
+      toast.success('Verification email sent', 'Check your inbox for a fresh link.');
+    } catch {
+      toast.error('Could not resend the verification email');
+    } finally {
+      setResending(false);
     }
   }
 
@@ -53,7 +82,21 @@ export function LoginPage() {
       {justRegistered && (
         <div className="mb-5 rounded-lg border border-accent-600/30 bg-accent-100 px-4 py-3 text-body-sm text-ink-700">
           Your company registration was submitted and is pending approval. We'll email you once it's
-          approved — then you can sign in.
+          approved — then you can sign in. Don't forget to verify your email from the link we sent.
+        </div>
+      )}
+      {unverifiedEmail && (
+        <div className="mb-5 rounded-lg border border-danger-600/30 bg-danger-100 px-4 py-3 text-body-sm text-ink-700">
+          <p>Your email address hasn't been verified yet.</p>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="mt-2 px-0"
+            isLoading={resending}
+            onClick={handleResend}
+          >
+            Resend verification email
+          </Button>
         </div>
       )}
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>

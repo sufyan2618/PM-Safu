@@ -1,5 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { departmentService, employeeService } from '@/api/services/employee.service';
+import {
+  departmentService,
+  employeeService,
+  type DepartmentUpdatePayload,
+} from '@/api/services/employee.service';
 import {
   salaryStructureService,
   type SalaryStructurePatch,
@@ -82,6 +86,23 @@ export function useCreateDepartment() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (payload: DepartmentFormValues) => departmentService.create(payload),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['departments'] }),
+  });
+}
+
+export function useUpdateDepartment() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: DepartmentUpdatePayload }) =>
+      departmentService.update(id, patch),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['departments'] }),
+  });
+}
+
+export function useDeleteDepartment() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => departmentService.remove(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['departments'] }),
   });
 }

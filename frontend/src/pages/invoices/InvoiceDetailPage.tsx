@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Copy, Download, Link2, Send, Trash2, Wallet } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
+import { Copy, Download, Link2, Pencil, Send, Trash2, Wallet } from 'lucide-react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -11,6 +12,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { StatusPill } from '@/components/domain/shared/StatusPill';
 import { InvoicePreviewPane } from '@/components/domain/invoices/InvoicePreviewPane';
 import { useInvoice, useInvoiceActions, useInvoiceTemplates } from '@/hooks/queries/useInvoices';
+import { invoiceService } from '@/api/services/invoice.service';
 import { useToast } from '@/hooks/useToast';
 import { formatCurrency } from '@/utils/formatCurrency';
 import { formatDate } from '@/utils/formatDate';
@@ -27,6 +29,7 @@ export function InvoiceDetailPage() {
   const [payOpen, setPayOpen] = useState(false);
   const [payAmount, setPayAmount] = useState('');
   const [payMethod, setPayMethod] = useState('bank_transfer');
+  const [downloading, setDownloading] = useState(false);
 
   if (isLoading || !invoice) {
     return (
@@ -52,14 +55,42 @@ export function InvoiceDetailPage() {
     toast.success('Share link copied');
   }
 
+  async function downloadPdf() {
+    if (!invoice) return;
+    setDownloading(true);
+    try {
+      await invoiceService.downloadPdf(invoice.id, `${invoice.invoiceNumber}.pdf`);
+    } catch {
+      toast.error('Could not download PDF');
+    } finally {
+      setDownloading(false);
+    }
+  }
+
   async function recordPayment() {
-    await actions.recordPayment.mutateAsync({
-      amount: Number(payAmount),
-      method: payMethod,
-    });
-    toast.success('Payment recorded');
-    setPayOpen(false);
-    setPayAmount('');
+    if (!invoice) return;
+    const amount = Number(payAmount);
+    if (!amount || amount <= 0) {
+      toast.error('Enter a valid payment amount');
+      return;
+    }
+    if (amount > invoice.amountDue) {
+      toast.error(
+        'Amount exceeds balance',
+        `The outstanding balance is ${formatCurrency(invoice.amountDue, { currency: invoice.currency })}.`,
+      );
+      return;
+    }
+    try {
+      await actions.recordPayment.mutateAsync({ amount, method: payMethod });
+      toast.success('Payment recorded');
+      setPayOpen(false);
+      setPayAmount('');
+    } catch (err) {
+      const message = (err as { response?: { data?: { message?: string } } })?.response?.data
+        ?.message;
+      toast.error('Could not record payment', message ?? 'Please try again.');
+    }
   }
 
   return (
@@ -69,13 +100,27 @@ export function InvoiceDetailPage() {
         breadcrumbs={[{ label: 'Invoices', to: ROUTES.INVOICES }, { label: invoice.invoiceNumber }]}
         actions={
           <>
-            <Button variant="outline" leftIcon={<Download size={16} />} onClick={() => toast.info('Generating PDF…')}>
+            <Button
+              variant="outline"
+              leftIcon={<Download size={16} />}
+              isLoading={downloading}
+              onClick={downloadPdf}
+            >
               PDF
             </Button>
             {invoice.status === 'draft' ? (
-              <Button leftIcon={<Send size={16} />} onClick={() => actions.send.mutate()}>
-                Send invoice
-              </Button>
+              <>
+                <Button
+                  variant="outline"
+                  leftIcon={<Pencil size={16} />}
+                  onClick={() => navigate(ROUTES.INVOICE_EDIT(invoice.id))}
+                >
+                  Edit
+                </Button>
+                <Button leftIcon={<Send size={16} />} onClick={() => actions.send.mutate()}>
+                  Send invoice
+                </Button>
+              </>
             ) : (
               <Button leftIcon={<Wallet size={16} />} onClick={() => setPayOpen(true)}>
                 Record payment
@@ -129,21 +174,29 @@ export function InvoiceDetailPage() {
 
           <Card>
             <CardHeader title="Share" ruled />
-            <div className="flex items-center gap-2 rounded-lg border border-subtle bg-sunken px-3 py-2">
-              <Link2 size={15} strokeWidth={1.5} className="shrink-0 text-ink-400" />
-              <span className="truncate font-data text-caption text-ink-600">{shareUrl}</span>
-              <button
-                type="button"
-                onClick={copyShareLink}
-                className="ml-auto shrink-0 text-ink-400 transition-colors hover:text-accent-600"
-                aria-label="Copy link"
-              >
-                <Copy size={15} strokeWidth={1.5} />
-              </button>
-            </div>
-            <div className="mt-3 flex justify-center rounded-lg border border-subtle bg-white p-3">
-              <QrPlaceholder />
-            </div>
+            {invoice.shareToken && (
+              <div className="flex items-center gap-2 rounded-lg border border-subtle bg-sunken px-3 py-2">
+                <Link2 size={15} strokeWidth={1.5} className="shrink-0 text-ink-400" />
+                <span className="truncate font-data text-caption text-ink-600">{shareUrl}</span>
+                <button
+                  type="button"
+                  onClick={copyShareLink}
+                  className="ml-auto shrink-0 text-ink-400 transition-colors hover:text-accent-600"
+                  aria-label="Copy link"
+                >
+                  <Copy size={15} strokeWidth={1.5} />
+                </button>
+              </div>
+            )}
+            {invoice.shareToken ? (
+              <div className="mt-3 flex justify-center rounded-lg border border-subtle bg-white p-3">
+                <QRCodeSVG value={shareUrl} size={96} level="M" />
+              </div>
+            ) : (
+              <p className="mt-3 text-center text-caption text-ink-400">
+                Send the invoice to generate a shareable link and QR code.
+              </p>
+            )}
           </Card>
 
           <Card>
@@ -225,21 +278,5 @@ export function InvoiceDetailPage() {
         </div>
       </Modal>
     </>
-  );
-}
-
-function QrPlaceholder() {
-  return (
-    <svg width="96" height="96" viewBox="0 0 96 96" aria-label="QR code" role="img">
-      <rect width="96" height="96" fill="white" />
-      {Array.from({ length: 12 }).map((_, r) =>
-        Array.from({ length: 12 }).map((_, c) => {
-          const filled = (r * 7 + c * 5 + (r % 3) + (c % 2)) % 3 === 0;
-          return filled ? (
-            <rect key={`${r}-${c}`} x={c * 8} y={r * 8} width="8" height="8" fill="#0E1320" />
-          ) : null;
-        }),
-      )}
-    </svg>
   );
 }

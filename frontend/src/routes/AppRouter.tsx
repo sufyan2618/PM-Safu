@@ -17,6 +17,9 @@ const ForgotPasswordPage = lazy(() =>
 const ResetPasswordPage = lazy(() =>
   import('@/pages/auth/ResetPasswordPage').then((m) => ({ default: m.ResetPasswordPage })),
 );
+const VerifyEmailPage = lazy(() =>
+  import('@/pages/auth/VerifyEmailPage').then((m) => ({ default: m.VerifyEmailPage })),
+);
 const OnboardingPage = lazy(() =>
   import('@/pages/onboarding/OnboardingPage').then((m) => ({ default: m.OnboardingPage })),
 );
@@ -106,6 +109,7 @@ export function AppRouter() {
           <Route path={ROUTES.REGISTER} element={<RegisterPage />} />
           <Route path={ROUTES.FORGOT_PASSWORD} element={<ForgotPasswordPage />} />
           <Route path={ROUTES.RESET_PASSWORD} element={<ResetPasswordPage />} />
+          <Route path={ROUTES.VERIFY_EMAIL} element={<VerifyEmailPage />} />
 
           {/* Public share view (no shell, no auth) */}
           <Route path={ROUTES.INVOICE_SHARE()} element={<InvoiceShareViewPage />} />
