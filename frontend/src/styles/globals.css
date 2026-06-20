@@ -9,81 +9,97 @@
  * @theme below maps them into Tailwind color/spacing utilities.
  */
 :root {
-  /* Surfaces & borders */
-  --bg-canvas: #f6f7f9;
+  /* Surfaces & borders — canvas is clearly distinct from card white */
+  --bg-canvas: #eaecf1;
   --bg-surface: #ffffff;
-  --bg-sunken: #eff1f4;
-  --border-subtle: #e4e7ec;
-  --border-strong: #cbd2dc;
+  --bg-elevated: #f7f8fa;
+  --bg-sunken: #e4e7ed;
+  --border-subtle: #dde0e8;
+  --border-faint: #eceef3;
+  --border-strong: #c4c9d5;
 
   /* Ink (text) */
-  --ink-900: #0e1320;
-  --ink-600: #4b5468;
-  --ink-400: #8a92a3;
+  --ink-900: #0d1220;
+  --ink-600: #495468;
+  --ink-400: #8890a2;
+  --ink-200: #c4c9d4;
 
   /* Accent — deep emerald */
-  --accent-600: #0e7c5a;
-  --accent-500: #16966d;
-  --accent-100: #def3ea;
+  --accent-600: #0d7a58;
+  --accent-500: #14926a;
+  --accent-100: #daf2e9;
+  --accent-50: #f0faf5;
 
   /* Status */
-  --warn-600: #b5780a;
-  --warn-100: #fcf0da;
-  --danger-600: #c2362f;
-  --danger-100: #fbe5e3;
-  --success-600: #2e8b57;
-  --success-100: #e2f4e9;
-  --info-600: #3060c2;
-  --info-100: #e4ecfb;
+  --warn-600: #b0730a;
+  --warn-100: #fbefd6;
+  --danger-600: #bf3129;
+  --danger-100: #fae3e1;
+  --success-600: #2b8852;
+  --success-100: #dff2e8;
+  --info-600: #2c5cb8;
+  --info-100: #e1eaf9;
 
-  /* Elevation */
-  --shadow-card: 0 1px 2px rgba(15, 18, 26, 0.04), 0 1px 1px rgba(15, 18, 26, 0.03);
-  --shadow-popover: 0 8px 24px rgba(15, 18, 26, 0.12);
+  /* Elevation — card shadow is clearly visible against the tinted canvas */
+  --shadow-card: 0 1px 4px rgba(13, 18, 32, 0.08), 0 1px 2px rgba(13, 18, 32, 0.05);
+  --shadow-elevated: 0 4px 14px rgba(13, 18, 32, 0.1), 0 2px 4px rgba(13, 18, 32, 0.06);
+  --shadow-popover: 0 8px 28px rgba(13, 18, 32, 0.14);
 }
 
 .dark {
-  --bg-canvas: #11141a;
-  --bg-surface: #181b22;
-  --bg-sunken: #1f232c;
-  --border-subtle: #2a2f3a;
-  --border-strong: #3a4150;
+  /* Stronger layering — canvas is clearly darker than card surfaces */
+  --bg-canvas: #080b10;
+  --bg-surface: #13171e;
+  --bg-elevated: #1b2030;
+  --bg-sunken: #181d26;
+  --border-subtle: #252c3a;
+  --border-faint: #1e2430;
+  --border-strong: #343d52;
 
-  --ink-900: #f2f4f7;
-  --ink-600: #afb6c4;
-  --ink-400: #6e7585;
+  --ink-900: #eef0f5;
+  --ink-600: #adb5c6;
+  --ink-400: #6b7487;
+  --ink-200: #3d4456;
 
-  --accent-600: #2bb683;
-  --accent-500: #3fcb97;
-  --accent-100: #16302a;
+  --accent-600: #27b07d;
+  --accent-500: #3cca96;
+  --accent-100: #132c24;
+  --accent-50: #0e2018;
 
-  --warn-600: #e0a53c;
-  --warn-100: #332714;
-  --danger-600: #e5635b;
-  --danger-100: #34191a;
-  --success-600: #4fb97b;
-  --success-100: #173425;
-  --info-600: #6e97e8;
-  --info-100: #1a2336;
+  --warn-600: #d99d38;
+  --warn-100: #2e2110;
+  --danger-600: #e35f58;
+  --danger-100: #2e1415;
+  --success-600: #4cb477;
+  --success-100: #14301e;
+  --info-600: #6a93e5;
+  --info-100: #172035;
 
-  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 1px rgba(0, 0, 0, 0.2);
-  --shadow-popover: 0 8px 24px rgba(0, 0, 0, 0.45);
+  /* Dark mode: outer shadow + inset top-edge highlight so cards feel lifted */
+  --shadow-card: 0 1px 4px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --shadow-elevated: 0 4px 18px rgba(0, 0, 0, 0.55), 0 2px 6px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  --shadow-popover: 0 8px 32px rgba(0, 0, 0, 0.65);
 }
 
 @theme {
   /* Map design tokens into Tailwind color utilities */
   --color-canvas: var(--bg-canvas);
   --color-surface: var(--bg-surface);
+  --color-elevated: var(--bg-elevated);
   --color-sunken: var(--bg-sunken);
   --color-subtle: var(--border-subtle);
+  --color-faint: var(--border-faint);
   --color-strong: var(--border-strong);
 
   --color-ink-900: var(--ink-900);
   --color-ink-600: var(--ink-600);
   --color-ink-400: var(--ink-400);
+  --color-ink-200: var(--ink-200);
 
   --color-accent-600: var(--accent-600);
   --color-accent-500: var(--accent-500);
   --color-accent-100: var(--accent-100);
+  --color-accent-50: var(--accent-50);
 
   --color-warn-600: var(--warn-600);
   --color-warn-100: var(--warn-100);
@@ -99,14 +115,14 @@
   --font-data: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', monospace;
 
   /* Typography scale */
-  --text-display-lg: 2rem; /* 32px */
-  --text-display-lg--line-height: 2.5rem;
+  --text-display-lg: 1.875rem; /* 30px — tighter than 32px, more controlled */
+  --text-display-lg--line-height: 2.25rem;
   --text-display-lg--font-weight: 600;
-  --text-display-sm: 1.5rem; /* 24px */
-  --text-display-sm--line-height: 2rem;
+  --text-display-sm: 1.375rem; /* 22px */
+  --text-display-sm--line-height: 1.875rem;
   --text-display-sm--font-weight: 600;
-  --text-heading: 1.125rem; /* 18px */
-  --text-heading--line-height: 1.625rem;
+  --text-heading: 1.0625rem; /* 17px */
+  --text-heading--line-height: 1.5rem;
   --text-heading--font-weight: 600;
   --text-body: 0.875rem; /* 14px */
   --text-body--line-height: 1.375rem;
@@ -115,8 +131,8 @@
   --text-caption: 0.75rem; /* 12px */
   --text-caption--line-height: 1rem;
   --text-caption--font-weight: 500;
-  --text-data-lg: 1.75rem; /* 28px */
-  --text-data-lg--line-height: 2.125rem;
+  --text-data-lg: 1.625rem; /* 26px — tighter, more disciplined */
+  --text-data-lg--line-height: 2rem;
   --text-data-lg--font-weight: 500;
   --text-data: 0.875rem; /* 14px */
   --text-data--line-height: 1.25rem;
@@ -124,6 +140,7 @@
 
   /* Elevation */
   --shadow-card: var(--shadow-card);
+  --shadow-elevated: var(--shadow-elevated);
   --shadow-popover: var(--shadow-popover);
 
   /* Max content width */
@@ -174,8 +191,8 @@
     scrollbar-color: var(--border-strong) transparent;
   }
   *::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
+    width: 8px;
+    height: 8px;
   }
   *::-webkit-scrollbar-thumb {
     background-color: var(--border-strong);
@@ -189,13 +206,23 @@
   .shadow-card {
     box-shadow: var(--shadow-card);
   }
+  .shadow-elevated {
+    box-shadow: var(--shadow-elevated);
+  }
   .shadow-popover {
     box-shadow: var(--shadow-popover);
   }
 
   /* The signature hairline ledger rule. */
   .ledger-rule {
-    border-top: 1px solid color-mix(in oklab, var(--accent-600) 20%, transparent);
+    border-top: 1px solid color-mix(in oklab, var(--accent-600) 18%, transparent);
+  }
+
+  /* Tabular number badge — tight pill for financial figures. */
+  .data-badge {
+    font-family: var(--font-data);
+    font-feature-settings: 'tnum';
+    letter-spacing: -0.01em;
   }
 
   @keyframes shimmer {

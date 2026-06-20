@@ -10,7 +10,7 @@ export function Topbar() {
   const setMobileSidebarOpen = useUiStore((s) => s.setMobileSidebarOpen);
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-3 border-b border-subtle bg-surface/80 px-4 backdrop-blur-md lg:px-6">
+    <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-3 border-b border-subtle bg-surface/90 px-4 backdrop-blur-md lg:px-6">
       <IconButton
         label="Open menu"
         icon={<Menu size={20} strokeWidth={1.5} />}

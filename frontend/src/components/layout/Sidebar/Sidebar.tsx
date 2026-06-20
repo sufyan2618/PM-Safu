@@ -17,15 +17,18 @@ export function Sidebar({ collapsed, onNavigate, showCollapseToggle = true }: Si
   const toggleSidebar = useUiStore((s) => s.toggleSidebar);
   const role = useAuthStore((s) => s.user?.role) as Role | undefined;
 
-  const navItems = NAV_SECTIONS.flatMap((section) => section.items).filter(
-    (item) => !item.roles || (role && item.roles.includes(role)),
-  );
+  const visibleSections = NAV_SECTIONS.map((section) => ({
+    ...section,
+    items: section.items.filter(
+      (item) => !item.roles || (role && item.roles.includes(role)),
+    ),
+  })).filter((section) => section.items.length > 0);
 
   return (
     <aside
       className={cn(
-        'flex h-full flex-col border-r border-strong bg-surface shadow-card transition-[width] duration-200',
-        collapsed ? 'w-[72px]' : 'w-[264px]',
+        'flex h-full flex-col border-r border-subtle bg-surface transition-[width] duration-200',
+        collapsed ? 'w-[64px]' : 'w-[240px]',
       )}
     >
       {showCollapseToggle && (
@@ -39,37 +42,48 @@ export function Sidebar({ collapsed, onNavigate, showCollapseToggle = true }: Si
             type="button"
             onClick={toggleSidebar}
             aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            className="flex h-8 w-8 items-center justify-center rounded-lg border border-subtle text-ink-600 transition-colors hover:bg-sunken hover:text-ink-900"
+            className="flex h-7 w-7 items-center justify-center rounded-md text-ink-400 transition-colors hover:bg-sunken hover:text-ink-600"
           >
             {collapsed ? (
-              <ChevronRight size={18} strokeWidth={1.5} />
+              <ChevronRight size={15} strokeWidth={2} />
             ) : (
-              <ChevronLeft size={18} strokeWidth={1.5} />
+              <ChevronLeft size={15} strokeWidth={2} />
             )}
           </button>
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto px-3 pb-4">
+      <div className="flex-1 overflow-y-auto px-2.5 pb-4">
         <div
           className={cn(
-            'flex items-center justify-center',
-            collapsed ? 'py-4' : 'px-1 pb-6 pt-3',
+            'flex items-center',
+            collapsed ? 'justify-center py-4' : 'px-1 pb-5 pt-3',
           )}
         >
           <CompanySwitcher collapsed={collapsed} />
         </div>
 
-        <nav className="space-y-1">
-          {navItems.map((item) => (
-            <SidebarItem
-              key={item.path}
-              label={item.label}
-              icon={item.icon}
-              path={item.path}
-              collapsed={collapsed}
-              onNavigate={onNavigate}
-            />
+        <nav className="space-y-4">
+          {visibleSections.map((section) => (
+            <div key={section.label}>
+              {!collapsed && (
+                <p className="mb-1 px-2.5 text-caption font-semibold uppercase tracking-[0.07em] text-ink-200">
+                  {section.label}
+                </p>
+              )}
+              <div className="space-y-0.5">
+                {section.items.map((item) => (
+                  <SidebarItem
+                    key={item.path}
+                    label={item.label}
+                    icon={item.icon}
+                    path={item.path}
+                    collapsed={collapsed}
+                    onNavigate={onNavigate}
+                  />
+                ))}
+              </div>
+            </div>
           ))}
         </nav>
       </div>

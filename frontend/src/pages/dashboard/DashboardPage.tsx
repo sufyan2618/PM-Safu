@@ -1,140 +1,184 @@
 import { useNavigate } from 'react-router-dom';
-import { Banknote, FileWarning, Users, Wallet, Plus } from 'lucide-react';
-import { PageHeader } from '@/components/layout/PageHeader';
+import {
+  Banknote,
+  FileWarning,
+  Users,
+  Wallet,
+  Plus,
+  Download,
+  ChevronRight,
+} from 'lucide-react';
 import { Card, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { StatusPill } from '@/components/domain/shared/StatusPill';
 import { StatTile } from '@/components/domain/dashboard/StatTile';
 import { RevenueChart } from '@/components/domain/dashboard/RevenueChart';
-import { PayrollExpenseChart } from '@/components/domain/dashboard/PayrollExpenseChart';
-import { OutstandingPaymentsList } from '@/components/domain/dashboard/OutstandingPaymentsList';
+import { UrgentActionsRail } from '@/components/domain/dashboard/UrgentActionsRail';
 import {
   useDashboardOverview,
-  useOutstandingClients,
-  usePayrollTrend,
   useRevenueTrend,
 } from '@/hooks/queries/useDashboard';
 import { useInvoices } from '@/hooks/queries/useInvoices';
-import { useAuthStore } from '@/store/authStore';
 import { formatCompactCurrency, formatCurrency } from '@/utils/formatCurrency';
 import { formatDate } from '@/utils/formatDate';
 import { ROUTES } from '@/constants/routes.constants';
 
+function OperationalHeader() {
+  const navigate = useNavigate();
+  const now = new Date();
+  const dateLabel = now.toLocaleDateString('en-US', {
+    month: 'long',
+    year: 'numeric',
+  }).toUpperCase();
+
+  return (
+    <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <p className="mb-0.5 text-caption font-semibold uppercase tracking-[0.08em] text-ink-400">
+          {dateLabel}
+        </p>
+        <h1 className="text-display-lg text-ink-900">Cash Flow Overview</h1>
+      </div>
+      <div className="flex items-center gap-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          leftIcon={<Download size={14} />}
+          onClick={() => navigate(ROUTES.REPORTS)}
+        >
+          Export Report
+        </Button>
+        <Button
+          size="sm"
+          leftIcon={<Plus size={14} />}
+          onClick={() => navigate(ROUTES.INVOICE_CREATE)}
+        >
+          Create Invoice
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export function DashboardPage() {
   const navigate = useNavigate();
-  const userName = useAuthStore((s) => s.user?.name?.split(' ')[0]);
   const overview = useDashboardOverview();
   const revenue = useRevenueTrend();
-  const payroll = usePayrollTrend();
-  const outstanding = useOutstandingClients();
-  const recentInvoices = useInvoices({ pageSize: 5 });
+  const recentInvoices = useInvoices({ pageSize: 6 });
 
   const stats = overview.data;
 
+  // Build a simple sparkline from revenue trend for the "collected" tile
+  const revSparkline = revenue.data?.map((d) => d.revenue);
+  const expSparkline = revenue.data?.map((d) => d.expense);
+
   return (
     <>
-      <PageHeader
-        title={`Welcome back, ${userName ?? 'there'}`}
-        description="Here's what's happening across billing and payroll today."
-        actions={
-          <Button leftIcon={<Plus size={16} />} onClick={() => navigate(ROUTES.INVOICE_CREATE)}>
-            New invoice
-          </Button>
-        }
-      />
+      <OperationalHeader />
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {overview.isLoading || !stats ? (
-          Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-[132px] rounded-xl" />)
-        ) : (
-          <>
+      {/* KPI Strip — hero (2/5) + 3 supporting (3/5) */}
+      <div className="mb-5 grid grid-cols-1 gap-3 xl:grid-cols-5">
+        {/* Hero tile */}
+        <div className="xl:col-span-2">
+          {overview.isLoading || !stats ? (
+            <Skeleton className="h-[140px] rounded-xl" />
+          ) : (
             <StatTile
-              label="Total revenue"
+              label="Collected this month"
               value={formatCompactCurrency(stats.totalRevenue)}
               icon={Banknote}
               tone="accent"
+              variant="hero"
               delta={{
                 value: `${Math.abs(stats.revenueDelta)}%`,
                 trend: stats.revenueDelta >= 0 ? 'up' : 'down',
               }}
               hint="vs. last month"
+              sparkline={revSparkline}
             />
-            <StatTile
-              label="Outstanding"
-              value={formatCompactCurrency(stats.outstandingAmount)}
-              icon={FileWarning}
-              tone="danger"
-              hint={`${stats.overdueCount} overdue`}
-            />
-            <StatTile
-              label="Payroll this month"
-              value={formatCompactCurrency(stats.payrollExpenseThisMonth)}
-              icon={Wallet}
-              tone="info"
-              delta={{
-                value: `${Math.abs(stats.payrollDelta)}%`,
-                trend: stats.payrollDelta >= 0 ? 'up' : 'down',
-              }}
-              hint="vs. last month"
-            />
-            <StatTile
-              label="Active employees"
-              value={String(stats.activeEmployees)}
-              icon={Users}
-              tone="warning"
-              hint={
-                stats.newHiresThisMonth > 0
-                  ? `+${stats.newHiresThisMonth} this month`
-                  : `Across ${stats.departmentCount} department${stats.departmentCount === 1 ? '' : 's'}`
-              }
-            />
-          </>
-        )}
+          )}
+        </div>
+
+        {/* 3 supporting tiles */}
+        <div className="grid grid-cols-3 gap-3 xl:col-span-3">
+          {overview.isLoading || !stats ? (
+            Array.from({ length: 3 }).map((_, i) => (
+              <Skeleton key={i} className="h-[140px] rounded-xl" />
+            ))
+          ) : (
+            <>
+              <StatTile
+                label="Overdue"
+                value={formatCompactCurrency(stats.outstandingAmount)}
+                icon={FileWarning}
+                tone="danger"
+                hint={`${stats.overdueCount} invoice${stats.overdueCount === 1 ? '' : 's'}`}
+              />
+              <StatTile
+                label="Payroll"
+                value={formatCompactCurrency(stats.payrollExpenseThisMonth)}
+                icon={Wallet}
+                tone="warning"
+                delta={{
+                  value: `${Math.abs(stats.payrollDelta)}%`,
+                  trend: stats.payrollDelta <= 0 ? 'up' : 'down',
+                }}
+                hint="vs. last month"
+              />
+              <StatTile
+                label="Employees"
+                value={String(stats.activeEmployees)}
+                icon={Users}
+                tone="info"
+                hint={
+                  stats.newHiresThisMonth > 0
+                    ? `+${stats.newHiresThisMonth} new`
+                    : `${stats.departmentCount} dept${stats.departmentCount === 1 ? '' : 's'}`
+                }
+              />
+            </>
+          )}
+        </div>
       </div>
 
-      <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-3">
+      {/* Main asymmetric grid */}
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+        {/* Large cashflow chart — takes 2/3 */}
         <Card className="xl:col-span-2">
-          <CardHeader title="Revenue vs. expenses" description="Last 8 months" ruled />
+          <CardHeader
+            title="Cashflow"
+            description="Revenue vs. expense"
+            ruled
+          />
           {revenue.isLoading || !revenue.data ? (
-            <Skeleton className="h-[260px] rounded-lg" />
+            <Skeleton className="h-[280px] rounded-lg" />
           ) : (
             <RevenueChart data={revenue.data} />
           )}
         </Card>
 
-        <Card>
-          <CardHeader title="Outstanding payments" description="Top clients by balance" ruled />
-          {outstanding.isLoading || !outstanding.data ? (
-            <div className="space-y-3">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <Skeleton key={i} className="h-12 rounded-lg" />
-              ))}
-            </div>
-          ) : (
-            <OutstandingPaymentsList clients={outstanding.data} />
-          )}
+        {/* Urgent actions rail — takes 1/3 */}
+        <Card className="xl:col-span-1">
+          <UrgentActionsRail />
         </Card>
       </div>
 
-      <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-3">
+      {/* Recent Invoices */}
+      <div className="mt-4">
         <Card>
-          <CardHeader title="Payroll expense" description="Last 6 months" ruled />
-          {payroll.isLoading || !payroll.data ? (
-            <Skeleton className="h-[260px] rounded-lg" />
-          ) : (
-            <PayrollExpenseChart data={payroll.data} />
-          )}
-        </Card>
-
-        <Card className="xl:col-span-2">
           <CardHeader
-            title="Recent invoices"
+            title="Recent Invoices"
             ruled
             action={
-              <Button variant="ghost" size="sm" onClick={() => navigate(ROUTES.INVOICES)}>
+              <button
+                type="button"
+                onClick={() => navigate(ROUTES.INVOICES)}
+                className="flex items-center gap-1 text-caption font-semibold text-accent-600 transition-colors hover:text-accent-500"
+              >
                 View all
-              </Button>
+                <ChevronRight size={13} strokeWidth={2.5} />
+              </button>
             }
           />
           {recentInvoices.isLoading || !recentInvoices.data ? (
@@ -143,30 +187,72 @@ export function DashboardPage() {
                 <Skeleton key={i} className="h-12 rounded-lg" />
               ))}
             </div>
+          ) : recentInvoices.data.items.length === 0 ? (
+            <div className="py-10 text-center">
+              <p className="text-body-sm text-ink-400">No invoices yet.</p>
+              <button
+                type="button"
+                onClick={() => navigate(ROUTES.INVOICE_CREATE)}
+                className="mt-2 text-body-sm font-medium text-accent-600 hover:text-accent-500"
+              >
+                Create your first invoice →
+              </button>
+            </div>
           ) : (
-            <ul className="divide-y divide-subtle">
-              {recentInvoices.data.items.map((invoice) => (
-                <li
-                  key={invoice.id}
-                  onClick={() => navigate(ROUTES.INVOICE_DETAIL(invoice.id))}
-                  className="flex cursor-pointer items-center gap-3 py-3 transition-colors hover:bg-sunken/50"
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="font-data text-body-sm font-medium text-ink-900">
-                      {invoice.invoiceNumber}
-                    </p>
-                    <p className="truncate text-caption text-ink-400">{invoice.client?.name}</p>
-                  </div>
-                  <span className="hidden text-caption text-ink-400 sm:block">
-                    {formatDate(invoice.dueDate)}
-                  </span>
-                  <StatusPill kind="invoice" status={invoice.status} />
-                  <span className="w-24 text-right font-data text-body-sm font-medium text-ink-900">
-                    {formatCurrency(invoice.total)}
-                  </span>
-                </li>
-              ))}
-            </ul>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-subtle">
+                    <th className="pb-2.5 text-left text-caption font-semibold uppercase tracking-[0.06em] text-ink-400">
+                      Invoice
+                    </th>
+                    <th className="pb-2.5 text-left text-caption font-semibold uppercase tracking-[0.06em] text-ink-400">
+                      Client
+                    </th>
+                    <th className="hidden pb-2.5 text-left text-caption font-semibold uppercase tracking-[0.06em] text-ink-400 sm:table-cell">
+                      Due date
+                    </th>
+                    <th className="pb-2.5 text-left text-caption font-semibold uppercase tracking-[0.06em] text-ink-400">
+                      Status
+                    </th>
+                    <th className="pb-2.5 text-right text-caption font-semibold uppercase tracking-[0.06em] text-ink-400">
+                      Amount
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-faint">
+                  {recentInvoices.data.items.map((invoice) => (
+                    <tr
+                      key={invoice.id}
+                      onClick={() => navigate(ROUTES.INVOICE_DETAIL(invoice.id))}
+                      className="cursor-pointer transition-colors hover:bg-sunken/40"
+                    >
+                      <td className="py-3 pr-4">
+                        <span className="font-data text-body-sm font-semibold text-ink-900">
+                          {invoice.invoiceNumber}
+                        </span>
+                      </td>
+                      <td className="py-3 pr-4">
+                        <p className="text-body-sm text-ink-900">{invoice.client?.name}</p>
+                      </td>
+                      <td className="hidden py-3 pr-4 sm:table-cell">
+                        <span className="text-body-sm text-ink-400">
+                          {formatDate(invoice.dueDate)}
+                        </span>
+                      </td>
+                      <td className="py-3 pr-4">
+                        <StatusPill kind="invoice" status={invoice.status} />
+                      </td>
+                      <td className="py-3 text-right">
+                        <span className="font-data text-body-sm font-semibold text-ink-900">
+                          {formatCurrency(invoice.total)}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </Card>
       </div>

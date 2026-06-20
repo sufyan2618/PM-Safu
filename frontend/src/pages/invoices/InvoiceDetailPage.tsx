@@ -77,6 +77,18 @@ export function InvoiceDetailPage() {
     }
   }
 
+  function openPayModal() {
+    if (!invoice) return;
+    // Pre-fill with the full outstanding balance — the most common case.
+    setPayAmount(invoice.amountDue.toFixed(2));
+    setPayOpen(true);
+  }
+
+  function fillFullAmount() {
+    if (!invoice) return;
+    setPayAmount(invoice.amountDue.toFixed(2));
+  }
+
   async function recordPayment() {
     if (!invoice) return;
     const amount = Number(payAmount);
@@ -84,7 +96,11 @@ export function InvoiceDetailPage() {
       toast.error('Enter a valid payment amount');
       return;
     }
-    if (amount > invoice.amountDue) {
+    // Compare in integer cents so display rounding / float precision can't
+    // wrongly reject a "pay in full" amount that matches the shown balance.
+    const amountCents = Math.round(amount * 100);
+    const dueCents = Math.round(invoice.amountDue * 100);
+    if (amountCents > dueCents) {
       toast.error(
         'Amount exceeds balance',
         `The outstanding balance is ${formatCurrency(invoice.amountDue, { currency: invoice.currency })}.`,
@@ -132,7 +148,7 @@ export function InvoiceDetailPage() {
                 </Button>
               </>
             ) : (
-              <Button leftIcon={<Wallet size={16} />} onClick={() => setPayOpen(true)}>
+              <Button leftIcon={<Wallet size={16} />} onClick={openPayModal}>
                 Record payment
               </Button>
             )}
@@ -283,14 +299,38 @@ export function InvoiceDetailPage() {
         }
       >
         <div className="space-y-4">
-          <Input
-            label="Amount"
-            type="number"
-            isMono
-            rightAddon="USD"
-            value={payAmount}
-            onChange={(e) => setPayAmount(e.target.value)}
-          />
+          <div>
+            <div className="mb-1.5 flex items-center justify-between">
+              <span className="text-caption font-medium uppercase tracking-[0.02em] text-ink-600">
+                Amount
+              </span>
+              <button
+                type="button"
+                onClick={fillFullAmount}
+                className="text-caption font-semibold text-accent-600 transition-colors hover:text-accent-500"
+              >
+                Pay in full ({formatCurrency(invoice.amountDue, { currency: invoice.currency })})
+              </button>
+            </div>
+            <Input
+              type="number"
+              isMono
+              rightAddon={
+                <span className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={fillFullAmount}
+                    className="rounded-md border border-subtle px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-ink-600 transition-colors hover:border-accent-600 hover:text-accent-600"
+                  >
+                    Full
+                  </button>
+                  <span className="text-body-sm text-ink-400">{invoice.currency}</span>
+                </span>
+              }
+              value={payAmount}
+              onChange={(e) => setPayAmount(e.target.value)}
+            />
+          </div>
           <Select
             label="Method"
             value={payMethod}
