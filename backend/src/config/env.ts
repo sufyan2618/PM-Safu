@@ -25,7 +25,12 @@ const envSchema = z.object({
 
   // Public URL of the brand logo shown in transactional emails. Defaults to the
   // logo bundled with and served by the backend ({APP_BASE_URL}/assets/logo.png).
-  EMAIL_LOGO_URL: z.string().url().optional(),
+  // Empty string (e.g. `EMAIL_LOGO_URL=` in .env / passed through by compose) is
+  // treated as "not set" so it falls back to the default instead of failing.
+  EMAIL_LOGO_URL: z.preprocess(
+    (v) => (v === "" ? undefined : v),
+    z.string().url().optional(),
+  ),
 
   // Groq AI — optional so the app boots without it; AI endpoints degrade to 503 when unset.
   GROQ_API_KEY: z.string().optional(),
