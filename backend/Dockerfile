@@ -22,6 +22,7 @@ USER bun
 
 EXPOSE 8000
 
-# Default command runs the API server. The worker service overrides this
-# with `bun src/workers/index.ts` in docker-compose.
-CMD ["bun", "src/index.ts"]
+# Default command seeds the super admin (idempotent, non-fatal) then runs the
+# API server. The worker service overrides this with `bun src/workers/index.ts`
+# in docker-compose, so seeding only happens once via the backend service.
+CMD ["sh", "-c", "bun src/scripts/seedSuperAdmin.ts || true; exec bun src/index.ts"]
