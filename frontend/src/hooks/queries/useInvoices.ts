@@ -8,10 +8,11 @@ interface InvoiceListParams extends QueryParams {
   clientId?: string;
 }
 
-export function useInvoices(params: InvoiceListParams = {}) {
+export function useInvoices(params: InvoiceListParams = {}, enabled = true) {
   return useQuery({
     queryKey: ['invoices', params],
     queryFn: () => invoiceService.list(params),
+    enabled,
   });
 }
 

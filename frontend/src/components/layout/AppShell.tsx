@@ -3,6 +3,7 @@ import { Outlet, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Sidebar } from './Sidebar/Sidebar';
 import { Topbar } from './Topbar/Topbar';
+import { CommandPalette } from './Topbar/CommandPalette';
 import { Drawer } from '@/components/ui/Drawer';
 import { useUiStore } from '@/store/uiStore';
 import { useIsDesktop } from '@/hooks/useMediaQuery';
@@ -13,10 +14,23 @@ export function AppShell() {
   const sidebarCollapsed = useUiStore((s) => s.sidebarCollapsed);
   const mobileSidebarOpen = useUiStore((s) => s.mobileSidebarOpen);
   const setMobileSidebarOpen = useUiStore((s) => s.setMobileSidebarOpen);
+  const setGlobalSearchOpen = useUiStore((s) => s.setGlobalSearchOpen);
 
   useEffect(() => {
     setMobileSidebarOpen(false);
   }, [location.pathname, setMobileSidebarOpen]);
+
+  // Global ⌘K / Ctrl+K shortcut to toggle the command palette.
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setGlobalSearchOpen(!useUiStore.getState().globalSearchOpen);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [setGlobalSearchOpen]);
 
   return (
     <div className="flex h-dvh overflow-hidden bg-canvas">
@@ -59,6 +73,8 @@ export function AppShell() {
           </div>
         </main>
       </div>
+
+      <CommandPalette />
     </div>
   );
 }

@@ -3,8 +3,12 @@ import { clientService } from '@/api/services/client.service';
 import type { QueryParams } from '@/types';
 import type { ClientFormValues } from '@/constants/validation.constants';
 
-export function useClients(params: QueryParams = {}) {
-  return useQuery({ queryKey: ['clients', params], queryFn: () => clientService.list(params) });
+export function useClients(params: QueryParams = {}, enabled = true) {
+  return useQuery({
+    queryKey: ['clients', params],
+    queryFn: () => clientService.list(params),
+    enabled,
+  });
 }
 
 export function useClient(id: string | undefined) {

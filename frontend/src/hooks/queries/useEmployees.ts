@@ -16,8 +16,12 @@ interface EmployeeListParams extends QueryParams {
   status?: string;
 }
 
-export function useEmployees(params: EmployeeListParams = {}) {
-  return useQuery({ queryKey: ['employees', params], queryFn: () => employeeService.list(params) });
+export function useEmployees(params: EmployeeListParams = {}, enabled = true) {
+  return useQuery({
+    queryKey: ['employees', params],
+    queryFn: () => employeeService.list(params),
+    enabled,
+  });
 }
 
 export function useEmployee(id: string | undefined) {
