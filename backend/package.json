@@ -9,6 +9,8 @@
     "dev:worker": "bun --watch --env-file=.env src/workers/index.ts",
     "start:worker": "NODE_ENV=production bun src/workers/index.ts",
     "seed:superadmin": "bun --env-file=.env src/scripts/seedSuperAdmin.ts",
+    "seed:demo": "bun --env-file=.env src/scripts/seedDemo.ts",
+    "seed:demo:reset": "DEMO_RESET=true bun --env-file=.env src/scripts/seedDemo.ts",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
