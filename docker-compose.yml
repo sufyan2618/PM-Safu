@@ -63,6 +63,9 @@ services:
       UPLOADS_DIR: /app/uploads
       COOKIE_SECRET: ${COOKIE_SECRET:-change-me-cookie-secret}
       PAYROLL_SYNC_THRESHOLD: ${PAYROLL_SYNC_THRESHOLD:-50}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
+      STRIPE_PLATFORM_FEE_PERCENT: ${STRIPE_PLATFORM_FEE_PERCENT:-0}
     volumes:
       - uploads-data:/app/uploads
     ports:
@@ -97,6 +100,9 @@ services:
       UPLOADS_DIR: /app/uploads
       COOKIE_SECRET: ${COOKIE_SECRET:-change-me-cookie-secret}
       PAYROLL_SYNC_THRESHOLD: ${PAYROLL_SYNC_THRESHOLD:-50}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
+      STRIPE_PLATFORM_FEE_PERCENT: ${STRIPE_PLATFORM_FEE_PERCENT:-0}
     volumes:
       - uploads-data:/app/uploads
 
