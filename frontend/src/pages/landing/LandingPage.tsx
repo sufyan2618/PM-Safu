@@ -33,9 +33,12 @@ function useCountUp(target: number, duration = 1800) {
   return { ref, display };
 }
 
+// Typed as a 4-tuple so Framer Motion's BezierDefinition constraint is satisfied.
+const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
+
 const fadeUp = {
   hidden: { opacity: 0, y: 24 },
-  show: (i = 0) => ({ opacity: 1, y: 0, transition: { duration: 0.5, delay: i * 0.08, ease: [0.22, 1, 0.36, 1] } }),
+  show: (i = 0) => ({ opacity: 1, y: 0, transition: { duration: 0.5, delay: i * 0.08, ease: EASE } }),
 };
 
 const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } };
@@ -134,7 +137,7 @@ function PayrollChart() {
                 <motion.div
                   initial={{ height: 0 }}
                   animate={inView ? { height: `${h}%` } : { height: 0 }}
-                  transition={{ duration: 0.65, delay: 0.1 + i * 0.07, ease: [0.22, 1, 0.36, 1] }}
+                  transition={{ duration: 0.65, delay: 0.1 + i * 0.07, ease: EASE }}
                   className={cn(
                     'w-full max-w-[44px] rounded-t-md',
                     isPeak
@@ -689,7 +692,7 @@ export function LandingPage() {
           <motion.div
             initial={{ opacity: 0, scale: 0.95, x: 30 }}
             animate={{ opacity: 1, scale: 1, x: 0 }}
-            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1], delay: 0.2 }}
+            transition={{ duration: 0.7, ease: EASE, delay: 0.2 }}
             className="relative"
           >
             <div className="absolute -inset-4 rounded-3xl border border-emerald-500/10 bg-linear-to-br from-emerald-950/30 via-transparent to-slate-800/20" />
