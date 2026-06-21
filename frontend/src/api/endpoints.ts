@@ -40,6 +40,7 @@ export const ENDPOINTS = {
     pdf: (id: string) => `/invoices/${id}/pdf`,
     publicShare: (token: string) => `/invoices/public/${token}`,
     publicSharePdf: (token: string) => `/invoices/public/${token}/pdf`,
+    publicCheckout: (token: string) => `/invoices/public/${token}/checkout`,
   },
   invoiceTemplates: {
     list: '/invoice-templates',
@@ -141,5 +142,9 @@ export const ENDPOINTS = {
     logo: '/company/logo',
     invoiceSettings: '/company/invoice-settings',
     payrollSettings: '/company/payroll-settings',
+  },
+  payments: {
+    connectOnboard: '/payments/connect/onboard',
+    connectStatus: '/payments/connect/status',
   },
 } as const;

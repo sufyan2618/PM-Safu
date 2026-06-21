@@ -24,6 +24,15 @@ export interface IPayrollSettings {
   taxSlabs: ITaxSlab[];
 }
 
+export interface IStripeAccount {
+  // Connected account id (acct_...). Absent until the company starts onboarding.
+  accountId?: string;
+  // Mirrors the connected account's capabilities; kept in sync via webhook + status checks.
+  chargesEnabled: boolean;
+  payoutsEnabled: boolean;
+  detailsSubmitted: boolean;
+}
+
 export interface ICompany extends Document {
   _id: Types.ObjectId;
   companyName: string;
@@ -47,6 +56,7 @@ export interface ICompany extends Document {
   fiscalYearStartMonth: number;
   invoiceSettings: IInvoiceSettings;
   payrollSettings: IPayrollSettings;
+  stripe: IStripeAccount;
 
   createdAt: Date;
   updatedAt: Date;
@@ -82,6 +92,16 @@ const payrollSettingsSchema = new Schema<IPayrollSettings>(
   { _id: false },
 );
 
+const stripeAccountSchema = new Schema<IStripeAccount>(
+  {
+    accountId: { type: String, trim: true },
+    chargesEnabled: { type: Boolean, default: false },
+    payoutsEnabled: { type: Boolean, default: false },
+    detailsSubmitted: { type: Boolean, default: false },
+  },
+  { _id: false },
+);
+
 const companySchema = new Schema<ICompany>(
   {
     companyName: { type: String, required: true, trim: true },
@@ -110,6 +130,7 @@ const companySchema = new Schema<ICompany>(
     fiscalYearStartMonth: { type: Number, default: 1, min: 1, max: 12 },
     invoiceSettings: { type: invoiceSettingsSchema, default: () => ({}) },
     payrollSettings: { type: payrollSettingsSchema, default: () => ({}) },
+    stripe: { type: stripeAccountSchema, default: () => ({}) },
   },
   { timestamps: true },
 );

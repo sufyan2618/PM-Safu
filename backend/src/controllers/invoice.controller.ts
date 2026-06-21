@@ -1,10 +1,12 @@
 import type { Request, Response } from "express";
-import type { Types } from "mongoose";
 import { EMAIL_JOBS, InvoiceStatus, PDF_JOBS } from "../config/constants";
 import { env } from "../config/env";
+import { stripe } from "../config/stripe";
 import { CompanyModel } from "../models/company.model";
 import { ClientModel } from "../models/client.model";
-import { InvoiceModel, type IInvoice } from "../models/invoice.model";
+import { InvoiceModel } from "../models/invoice.model";
+import { applyPaymentStatus, syncClientTotals } from "../utils/invoicePayments";
+import { toStripeAmount } from "../utils/stripeAmount";
 import { InvoiceTemplateModel } from "../models/invoiceTemplate.model";
 import { asyncHandler } from "../utils/async-handler";
 import { ApiError } from "../utils/apiError";
@@ -19,45 +21,6 @@ import { generateInvoicePdf } from "../lib/pdf/generateInvoicePdf";
 import { enqueueEmail } from "../queues/email.queue";
 import { enqueuePdf } from "../queues/pdf.queue";
 import { createNotification } from "../lib/notifications/createNotification";
-
-function applyPaymentStatus(invoice: IInvoice) {
-  invoice.amountDue = Math.max(invoice.grandTotal - invoice.amountPaid, 0);
-  if (invoice.status === InvoiceStatus.CANCELLED || invoice.status === InvoiceStatus.DRAFT) return;
-  if (invoice.amountDue <= 0) {
-    invoice.status = InvoiceStatus.PAID;
-    // Record when the invoice was fully settled (used by revenue analytics).
-    if (!invoice.paidOn) {
-      const lastPayment = invoice.paymentHistory.at(-1);
-      invoice.paidOn = lastPayment?.paidOn ?? new Date();
-    }
-  } else if (invoice.amountPaid > 0) {
-    invoice.status = InvoiceStatus.PARTIALLY_PAID;
-  }
-}
-
-async function syncClientTotals(companyId: Types.ObjectId, clientId: Types.ObjectId) {
-  const agg = await InvoiceModel.aggregate<{ _id: null; invoiced: number; outstanding: number }>([
-    {
-      $match: {
-        companyId,
-        clientId,
-        status: { $ne: InvoiceStatus.CANCELLED },
-      },
-    },
-    {
-      $group: {
-        _id: null,
-        invoiced: { $sum: "$grandTotal" },
-        outstanding: { $sum: "$amountDue" },
-      },
-    },
-  ]);
-  const totals = agg[0];
-  await ClientModel.updateOne(
-    { _id: clientId },
-    { $set: { totalInvoiced: totals?.invoiced ?? 0, totalOutstanding: totals?.outstanding ?? 0 } },
-  );
-}
 
 export const listInvoices = asyncHandler(async (req: Request, res: Response) => {
   const { page, limit, skip, sort } = getPagination(req.query);
@@ -336,10 +299,19 @@ export const getPublicInvoice = asyncHandler(async (req: Request, res: Response)
   if (!invoice) throw ApiError.notFound("Invoice not found");
 
   const company = await CompanyModel.findById(invoice.companyId).select(
-    "companyName legalName logoUrl currency address phone website",
+    "companyName legalName logoUrl currency address phone website stripe",
   );
 
-  return sendSuccess(res, { data: { invoice, company } });
+  // Whether this invoice can be paid online right now (company onboarded + balance owed).
+  const paymentsEnabled = Boolean(
+    company?.stripe?.chargesEnabled &&
+      invoice.amountDue > 0 &&
+      invoice.status !== InvoiceStatus.CANCELLED &&
+      invoice.status !== InvoiceStatus.DRAFT &&
+      invoice.status !== InvoiceStatus.PAID,
+  );
+
+  return sendSuccess(res, { data: { invoice, company, paymentsEnabled } });
 });
 
 export const getPublicInvoicePdf = asyncHandler(async (req: Request, res: Response) => {
@@ -351,6 +323,71 @@ export const getPublicInvoicePdf = asyncHandler(async (req: Request, res: Respon
   res.setHeader("Content-Type", "application/pdf");
   res.setHeader("Content-Disposition", `inline; filename="${invoice.invoiceNumber}.pdf"`);
   res.send(buffer);
+});
+
+/**
+ * Client-facing: creates a Stripe Checkout Session (destination charge) to pay an invoice
+ * via its public share token. Supports full or partial payment up to the amount due.
+ */
+export const createPublicCheckout = asyncHandler(async (req: Request, res: Response) => {
+  const invoice = await InvoiceModel.findOne({ shareToken: req.params.shareToken });
+  if (!invoice) throw ApiError.notFound("Invoice not found");
+
+  if (
+    invoice.status === InvoiceStatus.CANCELLED ||
+    invoice.status === InvoiceStatus.DRAFT ||
+    invoice.status === InvoiceStatus.PAID
+  ) {
+    throw ApiError.badRequest("This invoice is not payable");
+  }
+  if (invoice.amountDue <= 0) {
+    throw ApiError.badRequest("This invoice has no outstanding balance");
+  }
+
+  const company = await CompanyModel.findById(invoice.companyId).select("companyName stripe");
+  if (!company?.stripe?.accountId || !company.stripe.chargesEnabled) {
+    throw ApiError.conflict("This company is not set up to accept online payments yet");
+  }
+
+  // Amount defaults to the full balance; clamp partial amounts to the outstanding balance.
+  const requested = typeof req.body?.amount === "number" ? req.body.amount : invoice.amountDue;
+  const amount = Math.round(requested * 100) / 100;
+  if (amount <= 0) throw ApiError.badRequest("Payment amount must be greater than zero");
+  if (amount > invoice.amountDue + 0.001) throw ApiError.badRequest("Payment exceeds the amount due");
+
+  const currency = invoice.currency.toLowerCase();
+  const shareUrl = `${env.CLIENT_BASE_URL}/invoice/share/${invoice.shareToken}`;
+  const feePercent = env.STRIPE_PLATFORM_FEE_PERCENT;
+  const applicationFeeAmount =
+    feePercent > 0 ? Math.round(toStripeAmount(amount, currency) * (feePercent / 100)) : undefined;
+
+  const session = await stripe.checkout.sessions.create({
+    mode: "payment",
+    client_reference_id: invoice._id.toString(),
+    success_url: `${shareUrl}?paid=1`,
+    cancel_url: `${shareUrl}?canceled=1`,
+    line_items: [
+      {
+        quantity: 1,
+        price_data: {
+          currency,
+          unit_amount: toStripeAmount(amount, currency),
+          product_data: {
+            name: `Invoice ${invoice.invoiceNumber}`,
+            description: `Payment to ${company.companyName}`,
+          },
+        },
+      },
+    ],
+    payment_intent_data: {
+      transfer_data: { destination: company.stripe.accountId },
+      ...(applicationFeeAmount ? { application_fee_amount: applicationFeeAmount } : {}),
+      metadata: { invoiceId: invoice._id.toString(), companyId: invoice.companyId.toString() },
+    },
+    metadata: { invoiceId: invoice._id.toString(), companyId: invoice.companyId.toString() },
+  });
+
+  return sendSuccess(res, { data: { url: session.url } });
 });
 
 export const sendReminder = asyncHandler(async (req: Request, res: Response) => {

@@ -58,3 +58,8 @@ export const cancelInvoiceSchema = z.object({
 export const shareTokenParam = z.object({
   shareToken: z.string().min(10),
 });
+
+export const publicCheckoutSchema = z.object({
+  // Optional partial amount; when omitted the backend charges the full balance due.
+  amount: z.coerce.number().positive("Payment amount must be greater than zero").optional(),
+});

@@ -18,6 +18,8 @@ export interface IPaymentEntry {
   method: PaymentMethod;
   reference?: string;
   recordedBy?: Types.ObjectId;
+  // Set for payments made through Stripe; used to dedupe webhook retries.
+  stripePaymentIntentId?: string;
 }
 
 export interface IInvoice extends Document {
@@ -74,6 +76,7 @@ const paymentEntrySchema = new Schema<IPaymentEntry>(
     method: { type: String, enum: Object.values(PaymentMethod), default: PaymentMethod.BANK_TRANSFER },
     reference: { type: String, trim: true },
     recordedBy: { type: Schema.Types.ObjectId, ref: "User" },
+    stripePaymentIntentId: { type: String, trim: true },
   },
   { _id: false },
 );

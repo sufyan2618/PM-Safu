@@ -2,6 +2,7 @@ import { Router } from "express";
 import {
   cancelInvoice,
   createInvoice,
+  createPublicCheckout,
   deleteInvoice,
   getInvoice,
   getInvoicePdf,
@@ -23,6 +24,7 @@ import {
   cancelInvoiceSchema,
   createInvoiceSchema,
   listInvoicesQuery,
+  publicCheckoutSchema,
   recordPaymentSchema,
   shareTokenParam,
   updateInvoiceSchema,
@@ -30,9 +32,14 @@ import {
 
 const router = Router();
 
-// Public share-link routes (no auth, read-only).
+// Public share-link routes (no auth). The checkout route lets clients pay online.
 router.get("/public/:shareToken", validate({ params: shareTokenParam }), getPublicInvoice);
 router.get("/public/:shareToken/pdf", validate({ params: shareTokenParam }), getPublicInvoicePdf);
+router.post(
+  "/public/:shareToken/checkout",
+  validate({ params: shareTokenParam, body: publicCheckoutSchema }),
+  createPublicCheckout,
+);
 
 router.use(requireAuth, tenantMiddleware);
 

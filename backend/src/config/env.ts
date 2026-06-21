@@ -48,6 +48,14 @@ const envSchema = z.object({
 
   // Number of active employees above which payroll is processed via a background job.
   PAYROLL_SYNC_THRESHOLD: z.coerce.number().default(50),
+
+  // Stripe (test mode). Secret key drives both platform charges and Connect onboarding;
+  // a restricted key (rk_) is recommended over a full secret key (sk_).
+  STRIPE_SECRET_KEY: z.string().min(1, "STRIPE_SECRET_KEY is required"),
+  STRIPE_WEBHOOK_SECRET: z.string().min(1, "STRIPE_WEBHOOK_SECRET is required"),
+  // Optional platform application fee (percent of each invoice payment) routed to the
+  // platform account on destination charges. 0 disables the fee.
+  STRIPE_PLATFORM_FEE_PERCENT: z.coerce.number().min(0).max(100).default(0),
 });
 
 const parsedEnv = envSchema.safeParse(process.env);

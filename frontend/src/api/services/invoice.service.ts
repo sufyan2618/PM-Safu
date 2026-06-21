@@ -51,11 +51,22 @@ export const invoiceService = {
     return mapInvoice(data.data);
   },
 
-  async byShareToken(token: string): Promise<Invoice> {
-    const { data } = await axiosClient.get<ApiEnvelope<{ invoice: ApiInvoice }>>(
-      ENDPOINTS.invoices.publicShare(token),
+  async byShareToken(token: string): Promise<{ invoice: Invoice; paymentsEnabled: boolean }> {
+    const { data } = await axiosClient.get<
+      ApiEnvelope<{ invoice: ApiInvoice; paymentsEnabled?: boolean }>
+    >(ENDPOINTS.invoices.publicShare(token));
+    return {
+      invoice: mapInvoice(data.data.invoice),
+      paymentsEnabled: Boolean(data.data.paymentsEnabled),
+    };
+  },
+
+  async payShare(token: string, amount?: number): Promise<{ url: string }> {
+    const { data } = await axiosClient.post<ApiEnvelope<{ url: string }>>(
+      ENDPOINTS.invoices.publicCheckout(token),
+      amount != null ? { amount } : {},
     );
-    return mapInvoice(data.data.invoice);
+    return data.data;
   },
 
   async create(payload: InvoiceFormValues): Promise<Invoice> {

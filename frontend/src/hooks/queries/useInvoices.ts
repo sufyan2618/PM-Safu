@@ -24,11 +24,13 @@ export function useInvoice(id: string | undefined) {
   });
 }
 
-export function useSharedInvoice(token: string | undefined) {
+export function useSharedInvoice(token: string | undefined, pollMs?: number) {
   return useQuery({
     queryKey: ['invoice', 'share', token],
     queryFn: () => invoiceService.byShareToken(token!),
     enabled: !!token,
+    // When returning from checkout we poll until the webhook flips the invoice to paid.
+    refetchInterval: pollMs ?? false,
   });
 }
 
