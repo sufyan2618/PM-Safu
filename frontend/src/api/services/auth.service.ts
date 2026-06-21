@@ -89,8 +89,18 @@ export const authService = {
     await axiosClient.post(ENDPOINTS.auth.changePassword, payload);
   },
 
-  async verifyEmail(payload: { token: string; email: string }): Promise<void> {
-    await axiosClient.post(ENDPOINTS.auth.verifyEmail, payload);
+  async verifyEmail(payload: {
+    token: string;
+    email: string;
+  }): Promise<{ message: string; pendingApproval: boolean }> {
+    const { data } = await axiosClient.post<ApiEnvelope<{ pendingApproval?: boolean }>>(
+      ENDPOINTS.auth.verifyEmail,
+      payload,
+    );
+    return {
+      message: data.message ?? 'Email verified successfully.',
+      pendingApproval: data.data?.pendingApproval ?? false,
+    };
   },
 
   async resendVerification(email: string): Promise<void> {

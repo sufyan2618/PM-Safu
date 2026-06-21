@@ -17,6 +17,8 @@ export function VerifyEmailPage() {
   const email = params.get('email') ?? '';
   const [status, setStatus] = useState<Status>(token && email ? 'verifying' : 'missing');
   const [message, setMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+  const [pendingApproval, setPendingApproval] = useState(false);
   const [resending, setResending] = useState(false);
   const attempted = useRef(false);
 
@@ -26,7 +28,11 @@ export function VerifyEmailPage() {
 
     authService
       .verifyEmail({ token, email })
-      .then(() => setStatus('success'))
+      .then((result) => {
+        setSuccessMessage(result.message);
+        setPendingApproval(result.pendingApproval);
+        setStatus('success');
+      })
       .catch((err) => {
         const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
         setMessage(msg ?? 'This verification link is invalid or has expired.');
@@ -69,10 +75,15 @@ export function VerifyEmailPage() {
           <>
             <CheckCircle2 size={48} className="text-accent-600" />
             <p className="text-body text-ink-700">
-              Your email has been verified. You can now sign in to your account.
+              {successMessage || 'Your email has been verified.'}
             </p>
+            {pendingApproval && (
+              <p className="text-body-sm text-ink-500">
+                You'll be able to sign in once an administrator approves your company.
+              </p>
+            )}
             <Button fullWidth onClick={() => navigate(ROUTES.LOGIN)}>
-              Go to sign in
+              {pendingApproval ? 'Back to sign in' : 'Go to sign in'}
             </Button>
           </>
         )}

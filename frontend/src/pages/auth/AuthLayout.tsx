@@ -23,28 +23,30 @@ export function AuthLayout({ title, subtitle, children, footer }: AuthLayoutProp
     <div className="grid h-dvh overflow-hidden lg:grid-cols-2">
       {/* Form column */}
       <div
-        className="relative flex flex-col justify-center overflow-y-auto px-6 py-12 sm:px-12 [&::-webkit-scrollbar]:hidden"
+        className="overflow-y-auto [&::-webkit-scrollbar]:hidden"
         style={{ scrollbarWidth: 'none' }}
       >
-        <div className="mx-auto w-full max-w-sm">
-          <div className="mb-8 flex flex-col items-center text-center">
-            <img
-              src="/logo.webp"
-              alt="PM-Safu"
-              className="h-14 w-14 rounded-xl object-contain"
-            />
-            <span className="mt-2 text-heading font-semibold tracking-tight text-ink-900">
-              PM-Safu
-            </span>
+        <div className="flex min-h-full flex-col px-6 py-12 sm:px-12">
+          <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center">
+            <div className="mb-8 flex flex-col items-center text-center">
+              <img
+                src="/logo.webp"
+                alt="PM-Safu"
+                className="h-14 w-14 rounded-xl object-contain"
+              />
+              <span className="mt-2 text-heading font-semibold tracking-tight text-ink-900">
+                PM-Safu
+              </span>
+            </div>
+            <h1 className="text-display-lg text-ink-900">{title}</h1>
+            <p className="mt-2 text-body text-ink-600">{subtitle}</p>
+            <div className="mt-8">{children}</div>
+            {footer && <div className="mt-6 text-center text-body-sm text-ink-600">{footer}</div>}
           </div>
-          <h1 className="text-display-lg text-ink-900">{title}</h1>
-          <p className="mt-2 text-body text-ink-600">{subtitle}</p>
-          <div className="mt-8">{children}</div>
-          {footer && <div className="mt-6 text-center text-body-sm text-ink-600">{footer}</div>}
+          <p className="mx-auto w-full max-w-sm pt-10 text-center text-caption text-ink-400">
+            © {new Date().getFullYear()} PM-Safu
+          </p>
         </div>
-        <p className="absolute inset-x-0 bottom-4 text-center text-caption text-ink-400">
-          © {new Date().getFullYear()} PM-Safu
-        </p>
       </div>
 
       {/* Brand / animation panel — desktop only */}

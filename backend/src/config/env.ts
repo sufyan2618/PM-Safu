@@ -23,6 +23,10 @@ const envSchema = z.object({
   BREVO_SENDER_EMAIL: z.string().email("BREVO_SENDER_EMAIL must be a valid email"),
   BREVO_SENDER_NAME: z.string().default("PM-Safu"),
 
+  // Public URL of the brand logo shown in transactional emails. Defaults to the
+  // logo bundled with and served by the backend ({APP_BASE_URL}/assets/logo.png).
+  EMAIL_LOGO_URL: z.string().url().optional(),
+
   // Groq AI — optional so the app boots without it; AI endpoints degrade to 503 when unset.
   GROQ_API_KEY: z.string().optional(),
   GROQ_MODEL: z.string().default("openai/gpt-oss-120b"),

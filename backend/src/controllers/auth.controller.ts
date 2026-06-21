@@ -73,7 +73,9 @@ export const registerCompany = asyncHandler(async (req: Request, res: Response) 
     throw error;
   }
 
-  await enqueueEmail({ job: EMAIL_JOBS.COMPANY_RECEIVED, to: registrationEmail, companyName });
+  // Step 1 of the onboarding flow: verify the email first. The "application
+  // received / pending approval" email is sent only after verification (see
+  // verifyEmail), so the user gets one clear instruction at a time.
   await enqueueEmail({
     job: EMAIL_JOBS.EMAIL_VERIFICATION,
     to: registrationEmail,
@@ -83,7 +85,7 @@ export const registerCompany = asyncHandler(async (req: Request, res: Response) 
   });
 
   return sendCreated(res, {
-    message: "Registration submitted. Your company is pending approval.",
+    message: "Account created. Check your email to verify your address and submit your company for review.",
     data: companySummary(company),
   });
 });
@@ -462,7 +464,29 @@ export const verifyEmail = asyncHandler(async (req: Request, res: Response) => {
   user.emailVerificationExpiresAt = undefined;
   await user.save();
 
-  return sendSuccess(res, { message: "Email verified successfully. You can now log in." });
+  // For a self-registered company admin, verifying the email is what actually
+  // submits the company for review — so the "application received / pending
+  // approval" notice is sent now (not at sign-up). Invited users belong to an
+  // already-approved company, so they skip this and can log in immediately.
+  const company = await CompanyModel.findById(user.companyId).select(
+    "status companyName registrationEmail",
+  );
+  const pendingApproval = company?.status === CompanyStatus.PENDING;
+
+  if (pendingApproval && company) {
+    await enqueueEmail({
+      job: EMAIL_JOBS.COMPANY_RECEIVED,
+      to: company.registrationEmail,
+      companyName: company.companyName,
+    });
+  }
+
+  return sendSuccess(res, {
+    message: pendingApproval
+      ? "Email verified. Your company is now pending approval — we'll email you as soon as it's approved."
+      : "Email verified successfully. You can now log in.",
+    data: { pendingApproval },
+  });
 });
 
 export const resendVerification = asyncHandler(async (req: Request, res: Response) => {

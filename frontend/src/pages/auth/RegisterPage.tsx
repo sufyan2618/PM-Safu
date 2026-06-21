@@ -27,7 +27,10 @@ export function RegisterPage() {
         email: values.email,
         password: values.password,
       });
-      toast.success('Registration submitted', 'Your company is pending approval.');
+      toast.success(
+        'Almost there — check your email',
+        'We sent a verification link to confirm your address.',
+      );
     } catch (error) {
       const message =
         error instanceof AxiosError

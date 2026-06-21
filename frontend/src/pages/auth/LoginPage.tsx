@@ -81,8 +81,12 @@ export function LoginPage() {
     >
       {justRegistered && (
         <div className="mb-5 rounded-lg border border-accent-600/30 bg-accent-100 px-4 py-3 text-body-sm text-ink-700">
-          Your company registration was submitted and is pending approval. We'll email you once it's
-          approved — then you can sign in. Don't forget to verify your email from the link we sent.
+          <p className="font-medium text-ink-900">Verify your email to continue</p>
+          <p className="mt-1">
+            We've sent a verification link to your inbox. Confirm your email to submit your company
+            for review — we'll email you again once an administrator approves it, then you can sign
+            in.
+          </p>
         </div>
       )}
       {unverifiedEmail && (

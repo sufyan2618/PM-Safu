@@ -48,6 +48,15 @@ app.use(morgan(env.NODE_ENV === "production" ? "combined" : "dev", { stream: mor
 // Serve uploaded assets (logos, avatars, generated PDFs in dev).
 app.use("/uploads", express.static(getUploadsRoot()));
 
+// Serve bundled static assets (e.g. the brand logo used in transactional emails).
+app.use(
+  "/assets",
+  express.static(path.resolve(process.cwd(), "assets"), {
+    immutable: true,
+    maxAge: "7d",
+  }),
+);
+
 app.use("/api/v1", apiRouter);
 setupSwagger(app);
 
