@@ -72,7 +72,6 @@ export function DashboardPage() {
 
   // Build a simple sparkline from revenue trend for the "collected" tile
   const revSparkline = revenue.data?.map((d) => d.revenue);
-  const expSparkline = revenue.data?.map((d) => d.expense);
 
   return (
     <>
@@ -109,13 +108,22 @@ export function DashboardPage() {
             ))
           ) : (
             <>
-              <StatTile
-                label="Overdue"
-                value={formatCompactCurrency(stats.outstandingAmount)}
-                icon={FileWarning}
-                tone="danger"
-                hint={`${stats.overdueCount} invoice${stats.overdueCount === 1 ? '' : 's'}`}
-              />
+              {(() => {
+                const openCount = stats.invoiceCount.sent + stats.invoiceCount.overdue;
+                return (
+                  <StatTile
+                    label="Outstanding"
+                    value={formatCompactCurrency(stats.outstandingAmount)}
+                    icon={FileWarning}
+                    tone={stats.overdueCount > 0 ? 'danger' : 'warning'}
+                    hint={
+                      stats.overdueCount > 0
+                        ? `${stats.overdueCount} overdue`
+                        : `${openCount} open invoice${openCount === 1 ? '' : 's'}`
+                    }
+                  />
+                );
+              })()}
               <StatTile
                 label="Payroll"
                 value={formatCompactCurrency(stats.payrollExpenseThisMonth)}

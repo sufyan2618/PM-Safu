@@ -159,6 +159,7 @@ export function InvoiceDesignerPage() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [localDesign, setLocalDesign] = useState<InvoiceDesign | null>(null);
   const [localName, setLocalName] = useState('');
+  const [localBaseTheme, setLocalBaseTheme] = useState<InvoiceLayout>('custom');
   const [activeTab, setActiveTab] = useState<DesignerTab>('branding');
   const [saving, setSaving] = useState(false);
   const [logoUploading, setLogoUploading] = useState(false);
@@ -175,6 +176,7 @@ export function InvoiceDesignerPage() {
       setActiveId(def.id);
       setLocalDesign(deepClone(def.design));
       setLocalName(def.name);
+      setLocalBaseTheme(def.baseTheme);
     }
   }, [templates]);
 
@@ -182,6 +184,7 @@ export function InvoiceDesignerPage() {
     setActiveId(t.id);
     setLocalDesign(deepClone(t.design));
     setLocalName(t.name);
+    setLocalBaseTheme(t.baseTheme);
   }
 
   const previewTemplate: InvoiceTemplate | null =
@@ -269,7 +272,7 @@ export function InvoiceDesignerPage() {
     try {
       await updateTemplate.mutateAsync({
         id: activeId,
-        patch: { name: localName, design: localDesign },
+        patch: { name: localName, baseTheme: localBaseTheme, design: localDesign },
       });
       toast.success('Template saved');
     } catch {
@@ -601,11 +604,12 @@ export function InvoiceDesignerPage() {
                                 custom: { primaryColor: localDesign.branding.primaryColor, secondaryColor: localDesign.branding.secondaryColor, accentColor: localDesign.branding.accentColor },
                               };
                               const p = palettes[theme.value] ?? palettes.classic;
+                              setLocalBaseTheme(theme.value);
                               patchBranding(p);
                               patchLayout({ headerStyle: theme.value === 'modern' ? 'logo-top-banner' : 'logo-left' });
                             }}
                             className={`rounded-lg border px-3 py-2.5 text-left text-body-sm transition-all ${
-                              activeTemplate.baseTheme === theme.value
+                              localBaseTheme === theme.value
                                 ? 'border-accent-600 bg-accent-100 text-accent-700'
                                 : 'border-subtle hover:border-strong hover:bg-sunken'
                             }`}
