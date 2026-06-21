@@ -1,7 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { AlertCircle, CheckCircle2, Clock, Minus } from 'lucide-react';
 import { Skeleton } from '@/components/ui/Skeleton';
-import { StatusPill } from '@/components/domain/shared/StatusPill';
 import { useInvoices } from '@/hooks/queries/useInvoices';
 import { useDashboardOverview, usePayrollTrend } from '@/hooks/queries/useDashboard';
 import { formatCurrency, formatCompactCurrency } from '@/utils/formatCurrency';
