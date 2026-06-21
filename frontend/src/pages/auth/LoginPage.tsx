@@ -24,6 +24,7 @@ export function LoginPage() {
   const location = useLocation();
   const justRegistered = (location.state as { registered?: boolean } | null)?.registered;
   const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
   const [resending, setResending] = useState(false);
   const {
     register,
@@ -35,21 +36,34 @@ export function LoginPage() {
 
   async function onSubmit(values: LoginFormValues) {
     setUnverifiedEmail(null);
+    setFormError(null);
     try {
       await signIn(values);
       toast.success('Welcome back');
     } catch (error) {
-      const body =
-        error instanceof AxiosError
-          ? (error.response?.data as ApiErrorBody | undefined)
-          : undefined;
-      const notVerified = body?.errors?.some((e) => e.message === 'EMAIL_NOT_VERIFIED');
-      if (notVerified) {
-        setUnverifiedEmail(values.email);
-        toast.error('Email not verified', 'Please verify your email before signing in.');
+      if (error instanceof AxiosError) {
+        const body = error.response?.data as ApiErrorBody | undefined;
+
+        const notVerified = body?.errors?.some((e) => e.message === 'EMAIL_NOT_VERIFIED');
+        if (notVerified) {
+          setUnverifiedEmail(values.email);
+          toast.error('Email not verified', 'Please verify your email before signing in.');
+          return;
+        }
+
+        // No `response` means the request never completed (network/CORS/server
+        // unreachable) — surface a clear message instead of failing silently.
+        const message = error.response
+          ? body?.message ?? 'Invalid email or password. Please try again.'
+          : 'Could not reach the server. Check your connection and try again.';
+        setFormError(message);
+        toast.error('Unable to sign in', message);
         return;
       }
-      toast.error('Unable to sign in', body?.message ?? 'Check your credentials and try again.');
+
+      const message = 'Something went wrong. Please try again.';
+      setFormError(message);
+      toast.error('Unable to sign in', message);
     }
   }
 
@@ -87,6 +101,11 @@ export function LoginPage() {
             for review — we'll email you again once an administrator approves it, then you can sign
             in.
           </p>
+        </div>
+      )}
+      {formError && !unverifiedEmail && (
+        <div className="mb-5 rounded-lg border border-danger-600/30 bg-danger-100 px-4 py-3 text-body-sm text-ink-700">
+          {formError}
         </div>
       )}
       {unverifiedEmail && (
