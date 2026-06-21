@@ -10,6 +10,7 @@ import {
   listInvoices,
   recordPayment,
   sendInvoice,
+  sendReminder,
   updateInvoice,
 } from "../controllers/invoice.controller";
 import { requireAuth } from "../middlewares/auth.middleware";
@@ -51,5 +52,6 @@ router.post(
   validate({ params: idParam, body: recordPaymentSchema }),
   recordPayment,
 );
+router.post("/:id/send-reminder", canWrite, validate({ params: idParam }), sendReminder);
 
 export default router;

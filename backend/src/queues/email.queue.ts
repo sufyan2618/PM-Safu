@@ -40,6 +40,17 @@ export type EmailJobData =
       amountDue: string;
       dueDate: string;
       shareUrl: string;
+    }
+  | {
+      job: typeof EMAIL_JOBS.SALARY_SLIP_SENT;
+      to: string;
+      employeeName: string;
+      companyName: string;
+      month: string;
+      year: number;
+      grossSalary: string;
+      netSalary: string;
+      slipUrl: string;
     };
 
 export const emailQueue = new Queue<EmailJobData>(QUEUE_NAMES.EMAIL, { connection: redis });

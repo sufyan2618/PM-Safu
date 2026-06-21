@@ -81,5 +81,6 @@ export async function buildInvoiceRenderData(invoice: IInvoice): Promise<Invoice
     currency: invoice.currency,
     notes: invoice.notes,
     termsAndConditions: invoice.termsAndConditions,
+    shareToken: invoice.shareToken ?? undefined,
   };
 }

@@ -89,9 +89,6 @@ const CompanySettingsPage = lazy(() =>
 const UsersAndRolesPage = lazy(() =>
   import('@/pages/settings/UsersAndRolesPage').then((m) => ({ default: m.UsersAndRolesPage })),
 );
-const BillingSettingsPage = lazy(() =>
-  import('@/pages/settings/BillingSettingsPage').then((m) => ({ default: m.BillingSettingsPage })),
-);
 const AuditLogPage = lazy(() =>
   import('@/pages/settings/AuditLogPage').then((m) => ({ default: m.AuditLogPage })),
 );
@@ -165,7 +162,6 @@ export function AppRouter() {
                   <Route path={ROUTES.SETTINGS_COMPANY} element={<CompanySettingsPage />} />
                   <Route path={ROUTES.SETTINGS_USERS} element={<UsersAndRolesPage />} />
                   <Route path={ROUTES.SETTINGS_AUDIT_LOG} element={<AuditLogPage />} />
-                  <Route path={ROUTES.SETTINGS_BILLING} element={<BillingSettingsPage />} />
                 </Route>
               </Route>
             </Route>

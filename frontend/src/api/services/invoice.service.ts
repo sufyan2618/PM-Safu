@@ -166,6 +166,13 @@ export const invoiceService = {
     });
     triggerDownload(data, filename);
   },
+
+  async sendReminder(id: string): Promise<{ message: string }> {
+    const { data } = await axiosClient.post<ApiEnvelope<{ message: string }>>(
+      ENDPOINTS.invoices.sendReminder(id),
+    );
+    return data.data;
+  },
 };
 
 function triggerDownload(blob: Blob, filename: string): void {

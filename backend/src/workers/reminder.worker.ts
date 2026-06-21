@@ -8,18 +8,45 @@ import { ClientModel } from "../models/client.model";
 import { CompanyModel } from "../models/company.model";
 import { enqueueEmail } from "../queues/email.queue";
 import { formatCurrency } from "../utils/format";
+import { createNotification } from "../lib/notifications/createNotification";
 
 async function checkOverdueInvoices(): Promise<number> {
-  const result = await InvoiceModel.updateMany(
-    {
-      status: { $in: [InvoiceStatus.SENT, InvoiceStatus.PARTIALLY_PAID] },
-      dueDate: { $lt: new Date() },
-      amountDue: { $gt: 0 },
-    },
-    { $set: { status: InvoiceStatus.OVERDUE } },
-  );
-  logger.info(`Overdue check: ${result.modifiedCount} invoices marked overdue`);
-  return result.modifiedCount;
+  const overdueInvoices = await InvoiceModel.find({
+    status: { $in: [InvoiceStatus.SENT, InvoiceStatus.PARTIALLY_PAID] },
+    dueDate: { $lt: new Date() },
+    amountDue: { $gt: 0 },
+  }).select("_id companyId invoiceNumber");
+
+  if (overdueInvoices.length > 0) {
+    await InvoiceModel.updateMany(
+      { _id: { $in: overdueInvoices.map((i) => i._id) } },
+      { $set: { status: InvoiceStatus.OVERDUE } },
+    );
+
+    // Group by company and create one notification per company.
+    const byCompany = new Map<string, typeof overdueInvoices>();
+    for (const inv of overdueInvoices) {
+      const key = inv.companyId.toString();
+      if (!byCompany.has(key)) byCompany.set(key, []);
+      byCompany.get(key)!.push(inv);
+    }
+    for (const [, invoices] of byCompany) {
+      const count = invoices.length;
+      void createNotification({
+        companyId: invoices[0].companyId,
+        type: "invoice_overdue",
+        title: count === 1 ? "Invoice overdue" : `${count} invoices overdue`,
+        body:
+          count === 1
+            ? `Invoice ${invoices[0].invoiceNumber} is now overdue.`
+            : `${count} invoices are now overdue and require follow-up.`,
+        link: "/invoices?status=overdue",
+      });
+    }
+  }
+
+  logger.info(`Overdue check: ${overdueInvoices.length} invoices marked overdue`);
+  return overdueInvoices.length;
 }
 
 /** Minimum days between consecutive reminders for the same invoice (anti-spam). */

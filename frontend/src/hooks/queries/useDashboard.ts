@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { dashboardService, type DateRange } from '@/api/services/dashboard.service';
+export type { CashFlowForecastData, CashFlowBucket } from '@/api/services/dashboard.service';
 
 export function useDashboardOverview() {
   return useQuery({ queryKey: ['dashboard', 'overview'], queryFn: dashboardService.overview });
@@ -56,5 +57,13 @@ export function usePayrollByDepartment(range: DateRange = {}) {
   return useQuery({
     queryKey: ['dashboard', 'payroll-by-department', range],
     queryFn: () => dashboardService.payrollByDepartment(range),
+  });
+}
+
+export function useCashFlowForecast() {
+  return useQuery({
+    queryKey: ['dashboard', 'cash-flow-forecast'],
+    queryFn: dashboardService.cashFlowForecast,
+    staleTime: 5 * 60 * 1000,
   });
 }

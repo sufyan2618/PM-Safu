@@ -18,6 +18,7 @@ import { buildInvoiceRenderData } from "../lib/pdf/buildInvoiceRenderData";
 import { generateInvoicePdf } from "../lib/pdf/generateInvoicePdf";
 import { enqueueEmail } from "../queues/email.queue";
 import { enqueuePdf } from "../queues/pdf.queue";
+import { createNotification } from "../lib/notifications/createNotification";
 
 function applyPaymentStatus(invoice: IInvoice) {
   invoice.amountDue = Math.max(invoice.grandTotal - invoice.amountPaid, 0);
@@ -302,6 +303,16 @@ export const recordPayment = asyncHandler(async (req: Request, res: Response) =>
   await invoice.save();
   await syncClientTotals(invoice.companyId, invoice.clientId);
 
+  if (invoice.status === InvoiceStatus.PAID) {
+    void createNotification({
+      companyId: invoice.companyId,
+      type: "invoice_paid",
+      title: "Invoice paid",
+      body: `Invoice ${invoice.invoiceNumber} has been fully paid.`,
+      link: `/invoices/${invoice._id}`,
+    });
+  }
+
   return sendSuccess(res, { message: "Payment recorded", data: invoice });
 });
 
@@ -340,4 +351,44 @@ export const getPublicInvoicePdf = asyncHandler(async (req: Request, res: Respon
   res.setHeader("Content-Type", "application/pdf");
   res.setHeader("Content-Disposition", `inline; filename="${invoice.invoiceNumber}.pdf"`);
   res.send(buffer);
+});
+
+export const sendReminder = asyncHandler(async (req: Request, res: Response) => {
+  const invoice = await InvoiceModel.findOne({ _id: req.params.id, companyId: req.companyId });
+  if (!invoice) throw ApiError.notFound("Invoice not found");
+
+  const remindableStatuses = [InvoiceStatus.SENT, InvoiceStatus.PARTIALLY_PAID, InvoiceStatus.OVERDUE];
+  if (!remindableStatuses.includes(invoice.status)) {
+    throw ApiError.badRequest("Reminders can only be sent for sent, partially paid, or overdue invoices");
+  }
+
+  if (!invoice.shareToken) {
+    throw ApiError.badRequest("Invoice must be sent before a reminder can be dispatched");
+  }
+
+  const [client, company] = await Promise.all([
+    ClientModel.findById(invoice.clientId).select("name email"),
+    CompanyModel.findById(req.companyId).select("companyName"),
+  ]);
+
+  if (!client?.email) {
+    throw ApiError.badRequest("Client has no email address on record");
+  }
+
+  await enqueueEmail({
+    job: EMAIL_JOBS.PAYMENT_REMINDER,
+    to: client.email,
+    clientName: client.name,
+    companyName: company?.companyName ?? "",
+    invoiceNumber: invoice.invoiceNumber,
+    amountDue: formatCurrency(invoice.amountDue, invoice.currency),
+    dueDate: invoice.dueDate.toLocaleDateString(),
+    shareUrl: `${env.CLIENT_BASE_URL}/invoice/share/${invoice.shareToken}`,
+  });
+
+  invoice.lastReminderAt = new Date();
+  invoice.reminderCount = (invoice.reminderCount ?? 0) + 1;
+  await invoice.save();
+
+  return sendSuccess(res, { message: "Payment reminder sent to client" });
 });

@@ -122,6 +122,38 @@ export function invoiceToClientTemplate(input: {
   );
 }
 
+export function salarySlipTemplate(input: {
+  employeeName: string;
+  companyName: string;
+  month: string;
+  year: number;
+  grossSalary: string;
+  netSalary: string;
+  slipUrl: string;
+}): string {
+  return layout(
+    `Salary Slip — ${input.month} ${input.year}`,
+    `<h2 style="margin-top:0;">Your salary slip is ready</h2>
+     <p>Hi ${input.employeeName},</p>
+     <p><strong>${input.companyName}</strong> has processed your salary for <strong>${input.month} ${input.year}</strong>.</p>
+     <table role="presentation" cellpadding="0" cellspacing="0" style="margin:20px 0;width:100%;">
+       <tr>
+         <td style="padding:10px 16px;background:#f3f4f6;border-radius:8px 8px 0 0;border-bottom:1px solid #e5e7eb;">
+           <span style="color:#6b7280;font-size:13px;">Gross Salary</span>
+           <span style="float:right;font-weight:600;color:#111827;">${input.grossSalary}</span>
+         </td>
+       </tr>
+       <tr>
+         <td style="padding:10px 16px;background:#f3f4f6;border-radius:0 0 8px 8px;">
+           <span style="color:#6b7280;font-size:13px;">Net Salary</span>
+           <span style="float:right;font-weight:700;font-size:16px;color:#2563EB;">${input.netSalary}</span>
+         </td>
+       </tr>
+     </table>
+     ${button(input.slipUrl, "View Salary Slip")}`,
+  );
+}
+
 export function paymentReminderTemplate(input: {
   clientName: string;
   companyName: string;

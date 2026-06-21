@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
-import { Copy, Download, Link2, Pencil, Send, Trash2, Wallet } from 'lucide-react';
+import { BellRing, Copy, Download, Link2, Pencil, Send, Trash2, Wallet } from 'lucide-react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -30,6 +30,9 @@ export function InvoiceDetailPage() {
   const [payAmount, setPayAmount] = useState('');
   const [payMethod, setPayMethod] = useState('bank_transfer');
   const [downloading, setDownloading] = useState(false);
+  const [sendingReminder, setSendingReminder] = useState(false);
+
+  const remindableStatuses = ['sent', 'partially_paid', 'overdue'];
 
   if (isLoading || !invoice) {
     return (
@@ -63,6 +66,20 @@ export function InvoiceDetailPage() {
   function copyShareLink() {
     navigator.clipboard.writeText(shareUrl);
     toast.success('Share link copied');
+  }
+
+  async function handleSendReminder() {
+    if (!invoice) return;
+    setSendingReminder(true);
+    try {
+      await actions.sendReminder.mutateAsync();
+      toast.success('Reminder sent', 'Payment reminder has been emailed to the client.');
+    } catch (err) {
+      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast.error('Could not send reminder', message ?? 'Please try again.');
+    } finally {
+      setSendingReminder(false);
+    }
   }
 
   async function downloadPdf() {
@@ -148,9 +165,23 @@ export function InvoiceDetailPage() {
                 </Button>
               </>
             ) : (
-              <Button leftIcon={<Wallet size={16} />} onClick={openPayModal}>
-                Record payment
-              </Button>
+              <>
+                {remindableStatuses.includes(invoice.status) && (
+                  <Button
+                    variant="outline"
+                    leftIcon={<BellRing size={16} />}
+                    isLoading={sendingReminder}
+                    onClick={handleSendReminder}
+                  >
+                    Send reminder
+                  </Button>
+                )}
+                {invoice.status !== 'paid' && invoice.status !== 'cancelled' && (
+                  <Button leftIcon={<Wallet size={16} />} onClick={openPayModal}>
+                    Record payment
+                  </Button>
+                )}
+              </>
             )}
           </>
         }

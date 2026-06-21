@@ -536,3 +536,79 @@ export const exportReport = asyncHandler(async (req: Request, res: Response) => 
   res.setHeader("Content-Disposition", `inline; filename="financial-report.pdf"`);
   res.send(buffer);
 });
+
+interface ForecastBucket {
+  confirmed: number;
+  atRisk: number;
+  total: number;
+}
+
+export const cashFlowForecast = asyncHandler(async (req: Request, res: Response) => {
+  const companyId = companyObjectId(req);
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+
+  const day90 = new Date(now.getTime() + 90 * 86400000);
+
+  // Fetch all open invoices with amountDue > 0 regardless of due date
+  // (overdue invoices still represent expected inflows).
+  const openInvoices = await InvoiceModel.find({
+    companyId,
+    status: { $in: [InvoiceStatus.SENT, InvoiceStatus.PARTIALLY_PAID, InvoiceStatus.OVERDUE] },
+    amountDue: { $gt: 0 },
+  }).select("amountDue dueDate status");
+
+  const buckets: [ForecastBucket, ForecastBucket, ForecastBucket] = [
+    { confirmed: 0, atRisk: 0, total: 0 },
+    { confirmed: 0, atRisk: 0, total: 0 },
+    { confirmed: 0, atRisk: 0, total: 0 },
+  ];
+
+  let beyond90 = 0;
+
+  for (const inv of openInvoices) {
+    const daysUntilDue = Math.ceil((inv.dueDate.getTime() - now.getTime()) / 86400000);
+    const isAtRisk = inv.status === InvoiceStatus.OVERDUE;
+
+    let bucketIndex: number;
+    if (daysUntilDue <= 30) {
+      bucketIndex = 0;
+    } else if (daysUntilDue <= 60) {
+      bucketIndex = 1;
+    } else if (daysUntilDue <= 90) {
+      bucketIndex = 2;
+    } else {
+      beyond90 += inv.amountDue;
+      continue;
+    }
+
+    const bucket = buckets[bucketIndex];
+    bucket.total += inv.amountDue;
+    if (isAtRisk) {
+      bucket.atRisk += inv.amountDue;
+    } else {
+      bucket.confirmed += inv.amountDue;
+    }
+  }
+
+  // Round to 2 decimal places.
+  for (const b of buckets) {
+    b.confirmed = Math.round(b.confirmed * 100) / 100;
+    b.atRisk = Math.round(b.atRisk * 100) / 100;
+    b.total = Math.round(b.total * 100) / 100;
+  }
+
+  const totalNext90 = Math.round((buckets[0].total + buckets[1].total + buckets[2].total) * 100) / 100;
+  const totalNext30 = buckets[0].total;
+
+  return sendSuccess(res, {
+    data: {
+      next30: buckets[0],
+      next60: buckets[1],
+      next90: buckets[2],
+      totalNext90,
+      totalNext30,
+      beyond90: Math.round(beyond90 * 100) / 100,
+    },
+  });
+});

@@ -11,6 +11,7 @@ import {
   invoiceToClientTemplate,
   passwordResetTemplate,
   paymentReminderTemplate,
+  salarySlipTemplate,
   userInviteTemplate,
 } from "../templates/email-templates";
 import type { EmailJobData } from "../queues/email.queue";
@@ -55,6 +56,12 @@ function buildEmail(data: EmailJobData): { subject: string; html: string; toName
         subject: `Payment reminder: Invoice ${data.invoiceNumber}`,
         html: paymentReminderTemplate(data),
         toName: data.clientName,
+      };
+    case EMAIL_JOBS.SALARY_SLIP_SENT:
+      return {
+        subject: `Your salary slip for ${data.month} ${data.year} is ready`,
+        html: salarySlipTemplate(data),
+        toName: data.employeeName,
       };
     default:
       throw new Error(`Unknown email job: ${(data as { job: string }).job}`);

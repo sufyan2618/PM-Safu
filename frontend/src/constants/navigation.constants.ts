@@ -12,7 +12,6 @@ import {
   BarChart3,
   UserCircle,
   ShieldCheck,
-  CreditCard,
   ScrollText,
 } from 'lucide-react';
 import { ROUTES } from './routes.constants';
@@ -115,7 +114,6 @@ export const NAV_SECTIONS: NavSection[] = [
         path: ROUTES.SETTINGS_AUDIT_LOG,
         roles: ['company_admin'],
       },
-      { label: 'Billing', icon: CreditCard, path: ROUTES.SETTINGS_BILLING, roles: ['company_admin'] },
     ],
   },
 ];

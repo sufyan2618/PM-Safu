@@ -111,5 +111,9 @@ export function useInvoiceActions(id: string) {
         invoiceService.recordPayment(id, payload),
       onSuccess: invalidate,
     }),
+    sendReminder: useMutation({
+      mutationFn: () => invoiceService.sendReminder(id),
+      onSuccess: invalidate,
+    }),
   };
 }

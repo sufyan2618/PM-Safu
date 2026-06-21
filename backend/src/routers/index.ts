@@ -16,6 +16,7 @@ import auditRouter from "./audit.router";
 import taxRateRouter from "./taxRate.router";
 import exportRouter from "./export.router";
 import aiRouter from "./ai.router";
+import notificationRouter from "./notification.router";
 import { auditLogger } from "../middlewares/audit.middleware";
 
 const apiRouter = Router();
@@ -44,5 +45,6 @@ apiRouter.use("/audit-logs", auditRouter);
 apiRouter.use("/tax-rates", taxRateRouter);
 apiRouter.use("/export", exportRouter);
 apiRouter.use("/ai", aiRouter);
+apiRouter.use("/notifications", notificationRouter);
 
 export default apiRouter;

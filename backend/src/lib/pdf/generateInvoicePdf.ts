@@ -1,6 +1,8 @@
 import PDFDocument from "pdfkit";
+import QRCode from "qrcode";
 import type { InvoiceRenderData } from "./renderData";
 import { formatCurrency } from "../../utils/format";
+import { env } from "../../config/env";
 
 function streamToBuffer(doc: PDFKit.PDFDocument): Promise<Buffer> {
   return new Promise((resolve, reject) => {
@@ -132,12 +134,33 @@ export async function generateInvoicePdf(data: InvoiceRenderData): Promise<Buffe
     doc.fillColor(text).font("Helvetica").fontSize(9).text(data.termsAndConditions, left, doc.y, { width: tableWidth });
   }
 
+  // QR code — embed in bottom-right corner when a share token is available.
+  if (data.shareToken) {
+    const shareUrl = `${env.CLIENT_BASE_URL}/invoice/share/${data.shareToken}`;
+    const qrSize = 70;
+    const qrX = right - qrSize;
+    const qrY = doc.page.height - doc.page.margins.bottom - qrSize - 16;
+
+    try {
+      const qrBuffer = await QRCode.toBuffer(shareUrl, { type: "png", width: qrSize, margin: 1 });
+      doc.image(qrBuffer, qrX, qrY, { width: qrSize, height: qrSize });
+      doc
+        .fillColor(secondary)
+        .fontSize(7)
+        .font("Helvetica")
+        .text("Scan to view online", qrX, qrY + qrSize + 2, { width: qrSize, align: "center" });
+    } catch {
+      // QR generation failure is non-fatal — skip silently.
+    }
+  }
+
   if (design.sections.footer.visible) {
+    const footerWidth = data.shareToken ? tableWidth - 90 : tableWidth;
     doc.fillColor(secondary).fontSize(9).font("Helvetica").text(
       design.sections.footer.content,
       left,
       doc.page.height - doc.page.margins.bottom - 20,
-      { width: tableWidth, align: "center" },
+      { width: footerWidth, align: "center" },
     );
   }
 

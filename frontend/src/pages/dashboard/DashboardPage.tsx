@@ -15,6 +15,7 @@ import { StatusPill } from '@/components/domain/shared/StatusPill';
 import { StatTile } from '@/components/domain/dashboard/StatTile';
 import { RevenueChart } from '@/components/domain/dashboard/RevenueChart';
 import { UrgentActionsRail } from '@/components/domain/dashboard/UrgentActionsRail';
+import { CashFlowForecast } from '@/components/domain/dashboard/CashFlowForecast';
 import {
   useDashboardOverview,
   useRevenueTrend,
@@ -142,6 +143,8 @@ export function DashboardPage() {
         </div>
       </div>
 
+
+
       {/* Main asymmetric grid */}
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
         {/* Large cashflow chart — takes 2/3 */}
@@ -162,6 +165,11 @@ export function DashboardPage() {
         <Card className="xl:col-span-1">
           <UrgentActionsRail />
         </Card>
+      </div>
+
+            {/* Cash Flow Forecast */}
+      <div className="mt-4">
+        <CashFlowForecast />
       </div>
 
       {/* Recent Invoices */}

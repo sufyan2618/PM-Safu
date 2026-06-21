@@ -25,6 +25,7 @@ export const ENDPOINTS = {
     revenueByClient: '/dashboard/revenue-by-client',
     payrollByDepartment: '/dashboard/payroll-by-department',
     reportExport: '/dashboard/report/export',
+    cashFlowForecast: '/dashboard/cash-flow-forecast',
   },
   invoices: {
     list: '/invoices',
@@ -35,6 +36,7 @@ export const ENDPOINTS = {
     cancel: (id: string) => `/invoices/${id}/cancel`,
     send: (id: string) => `/invoices/${id}/send`,
     recordPayment: (id: string) => `/invoices/${id}/record-payment`,
+    sendReminder: (id: string) => `/invoices/${id}/send-reminder`,
     pdf: (id: string) => `/invoices/${id}/pdf`,
     publicShare: (token: string) => `/invoices/public/${token}`,
     publicSharePdf: (token: string) => `/invoices/public/${token}/pdf`,
@@ -125,6 +127,11 @@ export const ENDPOINTS = {
     invoiceDescribe: '/ai/invoice/describe',
     payrollInsights: (id: string) => `/ai/payroll/${id}/insights`,
     payrollChat: '/ai/payroll/chat',
+  },
+  notifications: {
+    list: '/notifications',
+    markAllRead: '/notifications/mark-all-read',
+    markOneRead: (id: string) => `/notifications/${id}/read`,
   },
   company: {
     me: '/company/me',

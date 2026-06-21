@@ -43,6 +43,7 @@ export interface InvoiceRenderData {
   currency: string;
   notes?: string;
   termsAndConditions?: string;
+  shareToken?: string;
 }
 
 export interface SalarySlipRenderData {

@@ -1,16 +1,21 @@
 import type { Request, Response } from "express";
 import { Types } from "mongoose";
-import { EmployeeStatus, PAYROLL_JOBS, PayrollStatus } from "../config/constants";
+import { EMAIL_JOBS, EmployeeStatus, PAYROLL_JOBS, PayrollStatus } from "../config/constants";
 import { env } from "../config/env";
 import { PayrollModel } from "../models/payroll.model";
 import { SalarySlipModel } from "../models/salarySlip.model";
 import { EmployeeModel } from "../models/employee.model";
+import { UserModel } from "../models/user.model";
 import { asyncHandler } from "../utils/async-handler";
 import { ApiError } from "../utils/apiError";
 import { sendCreated, sendSuccess } from "../utils/apiResponse";
 import { buildMeta, getPagination } from "../utils/pagination";
 import { processPayrollRun } from "../lib/payroll/processPayrollRun";
 import { enqueuePayrollRun } from "../queues/payroll.queue";
+import { enqueueEmail } from "../queues/email.queue";
+import { createNotification } from "../lib/notifications/createNotification";
+import { formatCurrency } from "../utils/format";
+import { CompanyModel } from "../models/company.model";
 
 export const listPayroll = asyncHandler(async (req: Request, res: Response) => {
   const { page, limit, skip, sort } = getPagination(req.query);
@@ -118,6 +123,54 @@ export const finalizePayroll = asyncHandler(async (req: Request, res: Response) 
   payroll.processedBy = req.user?.sub as never;
   payroll.processedAt = new Date();
   await payroll.save();
+
+  // Fire salary slip emails and notification without blocking the response.
+  void (async () => {
+    try {
+      const [slips, company] = await Promise.all([
+        SalarySlipModel.find({ companyId: req.companyId, payrollId: payroll._id })
+          .populate<{ employeeId: { firstName: string; lastName: string; userId?: Types.ObjectId } }>(
+            "employeeId",
+            "firstName lastName userId",
+          ),
+        CompanyModel.findById(req.companyId).select("companyName currency"),
+      ]);
+
+      const monthName = new Date(payroll.period.year, payroll.period.month - 1).toLocaleString("default", {
+        month: "long",
+      });
+
+      for (const slip of slips) {
+        const employee = slip.employeeId;
+        if (!employee?.userId) continue;
+        const user = await UserModel.findById(employee.userId).select("email");
+        if (!user?.email) continue;
+
+        await enqueueEmail({
+          job: EMAIL_JOBS.SALARY_SLIP_SENT,
+          to: user.email,
+          employeeName: `${employee.firstName} ${employee.lastName}`,
+          companyName: company?.companyName ?? "",
+          month: monthName,
+          year: payroll.period.year,
+          grossSalary: formatCurrency(slip.grossSalary, company?.currency ?? "USD"),
+          netSalary: formatCurrency(slip.netSalary, company?.currency ?? "USD"),
+          slipUrl: `${env.CLIENT_BASE_URL}/salary-slips/${slip._id}`,
+        });
+      }
+
+      void createNotification({
+        companyId: payroll.companyId,
+        type: "payroll_finalized",
+        title: "Payroll finalized",
+        body: `Payroll for ${monthName} ${payroll.period.year} has been finalized and salary slips have been sent.`,
+        link: `/payroll/${payroll._id}`,
+      });
+    } catch (err) {
+      // Post-finalize emails/notifications are non-critical — log only.
+      console.error("Post-finalize email/notification error:", (err as Error).message);
+    }
+  })();
 
   return sendSuccess(res, { message: "Payroll finalized", data: payroll });
 });

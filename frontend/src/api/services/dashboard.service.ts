@@ -34,6 +34,21 @@ export interface DateRange {
   to?: string;
 }
 
+export interface CashFlowBucket {
+  confirmed: number;
+  atRisk: number;
+  total: number;
+}
+
+export interface CashFlowForecastData {
+  next30: CashFlowBucket;
+  next60: CashFlowBucket;
+  next90: CashFlowBucket;
+  totalNext90: number;
+  totalNext30: number;
+  beyond90: number;
+}
+
 export const dashboardService = {
   async overview(): Promise<DashboardStats> {
     const { data } = await axiosClient.get<ApiEnvelope<ApiDashboardOverview>>(
@@ -109,6 +124,13 @@ export const dashboardService = {
     const { data } = await axiosClient.get<ApiEnvelope<PayrollByDepartment[]>>(
       ENDPOINTS.dashboard.payrollByDepartment,
       { params: range },
+    );
+    return data.data;
+  },
+
+  async cashFlowForecast(): Promise<CashFlowForecastData> {
+    const { data } = await axiosClient.get<ApiEnvelope<CashFlowForecastData>>(
+      ENDPOINTS.dashboard.cashFlowForecast,
     );
     return data.data;
   },

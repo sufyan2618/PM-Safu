@@ -92,6 +92,7 @@ export const EMAIL_JOBS = {
   USER_INVITE: "sendUserInvite",
   PASSWORD_RESET: "sendPasswordReset",
   EMAIL_VERIFICATION: "sendEmailVerification",
+  SALARY_SLIP_SENT: "sendSalarySlipEmail",
 } as const;
 
 export const PDF_JOBS = {

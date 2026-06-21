@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   arAging,
+  cashFlowForecast,
   collectionMetrics,
   exportReport,
   financialSummary,
@@ -44,6 +45,7 @@ router.get("/ar-aging", arAging);
 router.get("/collection-metrics", validate({ query: summaryQuery }), collectionMetrics);
 router.get("/revenue-by-client", validate({ query: revenueByClientQuery }), revenueByClient);
 router.get("/payroll-by-department", validate({ query: summaryQuery }), payrollByDepartment);
+router.get("/cash-flow-forecast", cashFlowForecast);
 router.get("/report/export", validate({ query: reportExportQuery }), exportReport);
 
 export default router;
