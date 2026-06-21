@@ -21,7 +21,7 @@ const envSchema = z.object({
 
   BREVO_API_KEY: z.string().min(1, "BREVO_API_KEY is required"),
   BREVO_SENDER_EMAIL: z.string().email("BREVO_SENDER_EMAIL must be a valid email"),
-  BREVO_SENDER_NAME: z.string().default("Invoice & Payroll Platform"),
+  BREVO_SENDER_NAME: z.string().default("PM-Safu"),
 
   // Groq AI — optional so the app boots without it; AI endpoints degrade to 503 when unset.
   GROQ_API_KEY: z.string().optional(),

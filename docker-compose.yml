@@ -1,0 +1,126 @@
+name: payroll-management
+
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_DATABASE: ${MONGO_DB:-payroll}
+    volumes:
+      - mongo-data:/data/db
+    ports:
+      - "${MONGO_PORT:-27017}:27017"
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 8000
+      APP_BASE_URL: ${APP_BASE_URL:-http://localhost:8000}
+      CLIENT_BASE_URL: ${CLIENT_BASE_URL:-http://localhost:5173}
+      ADMIN_BASE_URL: ${ADMIN_BASE_URL:-http://localhost:5174}
+      MONGODB_URI: mongodb://mongo:27017/${MONGO_DB:-payroll}
+      REDIS_URL: redis://redis:6379
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-}
+      JWT_ACCESS_EXPIRES_IN: ${JWT_ACCESS_EXPIRES_IN:-15m}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-30d}
+      BREVO_API_KEY: ${BREVO_API_KEY}
+      BREVO_SENDER_EMAIL: ${BREVO_SENDER_EMAIL}
+      BREVO_SENDER_NAME: ${BREVO_SENDER_NAME:-PM-Safu}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      GROQ_MODEL: ${GROQ_MODEL:-openai/gpt-oss-120b}
+      GROQ_MODEL_FAST: ${GROQ_MODEL_FAST:-openai/gpt-oss-20b}
+      SUPERADMIN_SEED_EMAIL: ${SUPERADMIN_SEED_EMAIL:-}
+      SUPERADMIN_SEED_PASSWORD: ${SUPERADMIN_SEED_PASSWORD:-}
+      UPLOADS_DIR: /app/uploads
+      COOKIE_SECRET: ${COOKIE_SECRET:-change-me-cookie-secret}
+      PAYROLL_SYNC_THRESHOLD: ${PAYROLL_SYNC_THRESHOLD:-50}
+    volumes:
+      - uploads-data:/app/uploads
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+
+  worker:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    command: ["bun", "src/workers/index.ts"]
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      MONGODB_URI: mongodb://mongo:27017/${MONGO_DB:-payroll}
+      REDIS_URL: redis://redis:6379
+      APP_BASE_URL: ${APP_BASE_URL:-http://localhost:8000}
+      CLIENT_BASE_URL: ${CLIENT_BASE_URL:-http://localhost:5173}
+      ADMIN_BASE_URL: ${ADMIN_BASE_URL:-http://localhost:5174}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-}
+      BREVO_API_KEY: ${BREVO_API_KEY}
+      BREVO_SENDER_EMAIL: ${BREVO_SENDER_EMAIL}
+      BREVO_SENDER_NAME: ${BREVO_SENDER_NAME:-PM-Safu}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      GROQ_MODEL: ${GROQ_MODEL:-openai/gpt-oss-120b}
+      GROQ_MODEL_FAST: ${GROQ_MODEL_FAST:-openai/gpt-oss-20b}
+      UPLOADS_DIR: /app/uploads
+      COOKIE_SECRET: ${COOKIE_SECRET:-change-me-cookie-secret}
+      PAYROLL_SYNC_THRESHOLD: ${PAYROLL_SYNC_THRESHOLD:-50}
+    volumes:
+      - uploads-data:/app/uploads
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:8000/api/v1}
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "${FRONTEND_PORT:-5173}:80"
+
+  admin-panel:
+    build:
+      context: ./admin-panel
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:8000/api/v1}
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "${ADMIN_PORT:-5174}:80"
+
+volumes:
+  mongo-data:
+  redis-data:
+  uploads-data:

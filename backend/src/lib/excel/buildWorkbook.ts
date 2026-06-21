@@ -16,7 +16,7 @@ export async function buildWorkbookBuffer(
   rows: Record<string, unknown>[],
 ): Promise<Buffer> {
   const workbook = new ExcelJS.Workbook();
-  workbook.creator = "Invoice & Payroll Platform";
+  workbook.creator = "PM-Safu";
   workbook.created = new Date();
 
   const sheet = workbook.addWorksheet(sheetName, {
