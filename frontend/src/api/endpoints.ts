@@ -100,6 +100,8 @@ export const ENDPOINTS = {
   users: {
     list: '/users',
     create: '/users',
+    me: '/users/me',
+    myAvatar: '/users/me/avatar',
     detail: (id: string) => `/users/${id}`,
     update: (id: string) => `/users/${id}`,
     remove: (id: string) => `/users/${id}`,

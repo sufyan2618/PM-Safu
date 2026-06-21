@@ -24,3 +24,9 @@ export const updateUserSchema = z
     isActive: z.boolean().optional(),
   })
   .refine((data) => Object.keys(data).length > 0, { message: "No fields to update" });
+
+export const updateMyProfileSchema = z
+  .object({
+    name: z.string().trim().min(2, "Name must be at least 2 characters").optional(),
+  })
+  .refine((data) => Object.keys(data).length > 0, { message: "No fields to update" });

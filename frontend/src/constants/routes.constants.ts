@@ -1,4 +1,5 @@
 export const ROUTES = {
+  LANDING: '/',
   LOGIN: '/login',
   REGISTER: '/register',
   FORGOT_PASSWORD: '/forgot-password',
@@ -7,7 +8,7 @@ export const ROUTES = {
 
   ONBOARDING: '/onboarding',
 
-  DASHBOARD: '/',
+  DASHBOARD: '/dashboard',
 
   INVOICES: '/invoices',
   INVOICE_CREATE: '/invoices/new',

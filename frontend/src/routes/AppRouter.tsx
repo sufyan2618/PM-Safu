@@ -92,6 +92,9 @@ const UsersAndRolesPage = lazy(() =>
 const AuditLogPage = lazy(() =>
   import('@/pages/settings/AuditLogPage').then((m) => ({ default: m.AuditLogPage })),
 );
+const LandingPage = lazy(() =>
+  import('@/pages/landing/LandingPage').then((m) => ({ default: m.LandingPage })),
+);
 const NotFoundPage = lazy(() =>
   import('@/pages/misc/NotFoundPage').then((m) => ({ default: m.NotFoundPage })),
 );
@@ -104,6 +107,9 @@ export function AppRouter() {
     <BrowserRouter>
       <Suspense fallback={<RouteFallback />}>
         <Routes>
+          {/* Landing page — public */}
+          <Route path={ROUTES.LANDING} element={<LandingPage />} />
+
           {/* Public auth routes */}
           <Route path={ROUTES.LOGIN} element={<LoginPage />} />
           <Route path={ROUTES.REGISTER} element={<RegisterPage />} />

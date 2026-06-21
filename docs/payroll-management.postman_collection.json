@@ -1,0 +1,2386 @@
+{
+  "info": {
+    "_postman_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "name": "Payroll Management API",
+    "description": "Complete API collection for the Payroll Management System.\n\n**Base URL:** `http://localhost:8000/api/v1`\n\n## Setup\n1. Set the `base_url` variable to your server (default: `http://localhost:8000`).\n2. Run **Login** — the `access_token` is saved automatically via the test script.\n3. For Super Admin endpoints, run **Super Admin Login** — the `super_admin_token` is saved automatically.\n4. Replace placeholder IDs (`{{employee_id}}`, `{{invoice_id}}`, etc.) with real ObjectIds from your database.\n\n## Roles\n- `company_admin` — full access to all company endpoints\n- `hr_manager` — employees, departments, payroll, salary structures\n- `accountant` — invoices, clients, tax rates, dashboard\n- `staff` — read-only access\n- `super_admin` — platform management only\n\n## Response Format\nAll responses follow `{ success, message, data?, meta? }`. Pagination endpoints include a `meta` object with `{ page, limit, total, totalPages }`.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{access_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000",
+      "type": "string",
+      "description": "Backend server base URL"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string",
+      "description": "JWT access token — auto-populated by the Login request test script"
+    },
+    {
+      "key": "super_admin_token",
+      "value": "",
+      "type": "string",
+      "description": "JWT access token for super admin — auto-populated by Super Admin Login test script"
+    },
+    {
+      "key": "company_id",
+      "value": "000000000000000000000001",
+      "type": "string",
+      "description": "MongoDB ObjectId of a company"
+    },
+    {
+      "key": "user_id",
+      "value": "000000000000000000000002",
+      "type": "string",
+      "description": "MongoDB ObjectId of a user"
+    },
+    {
+      "key": "employee_id",
+      "value": "000000000000000000000003",
+      "type": "string",
+      "description": "MongoDB ObjectId of an employee"
+    },
+    {
+      "key": "department_id",
+      "value": "000000000000000000000004",
+      "type": "string",
+      "description": "MongoDB ObjectId of a department"
+    },
+    {
+      "key": "client_id",
+      "value": "000000000000000000000005",
+      "type": "string",
+      "description": "MongoDB ObjectId of a client"
+    },
+    {
+      "key": "invoice_id",
+      "value": "000000000000000000000006",
+      "type": "string",
+      "description": "MongoDB ObjectId of an invoice"
+    },
+    {
+      "key": "template_id",
+      "value": "000000000000000000000007",
+      "type": "string",
+      "description": "MongoDB ObjectId of an invoice template"
+    },
+    {
+      "key": "payroll_id",
+      "value": "000000000000000000000008",
+      "type": "string",
+      "description": "MongoDB ObjectId of a payroll run"
+    },
+    {
+      "key": "salary_slip_id",
+      "value": "000000000000000000000009",
+      "type": "string",
+      "description": "MongoDB ObjectId of a salary slip"
+    },
+    {
+      "key": "salary_structure_id",
+      "value": "000000000000000000000010",
+      "type": "string",
+      "description": "MongoDB ObjectId of a salary structure"
+    },
+    {
+      "key": "tax_rate_id",
+      "value": "000000000000000000000011",
+      "type": "string",
+      "description": "MongoDB ObjectId of a tax rate"
+    },
+    {
+      "key": "notification_id",
+      "value": "000000000000000000000012",
+      "type": "string",
+      "description": "MongoDB ObjectId of a notification"
+    },
+    {
+      "key": "share_token",
+      "value": "public_share_token_here",
+      "type": "string",
+      "description": "Public share token for invoice links"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "description": "Server health check endpoint.",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/health",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "health"]
+            },
+            "description": "Returns server health status and timestamp. No authentication required."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Authentication",
+      "description": "Register, login, token management, email verification, and password management.",
+      "item": [
+        {
+          "name": "Register Company",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"companyName\": \"Acme Corporation\",\n  \"registrationEmail\": \"admin@acme.com\",\n  \"password\": \"SecurePass123!\",\n  \"adminName\": \"John Doe\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/register-company",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "register-company"]
+            },
+            "description": "Register a new company and its initial admin user. An email verification link is sent to `registrationEmail`. The company starts in **pending** status and requires super admin approval.\n\n**Rate limited.**"
+          },
+          "response": []
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const body = pm.response.json();",
+                  "  if (body.data && body.data.accessToken) {",
+                  "    pm.collectionVariables.set('access_token', body.data.accessToken);",
+                  "    console.log('✅ access_token saved to collection variables');",
+                  "  }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@acme.com\",\n  \"password\": \"SecurePass123!\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "login"]
+            },
+            "description": "Login as a company user. The refresh token is set as an `HttpOnly` cookie automatically by the server. The `access_token` collection variable is populated automatically via the test script.\n\n**Rate limited.**\n\nRequirements:\n- Email must be verified\n- Company must be approved and active"
+          },
+          "response": []
+        },
+        {
+          "name": "Super Admin Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const body = pm.response.json();",
+                  "  if (body.data && body.data.accessToken) {",
+                  "    pm.collectionVariables.set('super_admin_token', body.data.accessToken);",
+                  "    console.log('✅ super_admin_token saved to collection variables');",
+                  "  }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"superadmin@system.com\",\n  \"password\": \"SuperAdminPass123!\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/super-admin/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "super-admin", "login"]
+            },
+            "description": "Login as a super admin (platform operator). The `super_admin_token` collection variable is populated automatically via the test script.\n\n**Rate limited.**"
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const body = pm.response.json();",
+                  "  if (body.data && body.data.accessToken) {",
+                  "    pm.collectionVariables.set('access_token', body.data.accessToken);",
+                  "    console.log('✅ access_token refreshed');",
+                  "  }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/refresh",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "refresh"]
+            },
+            "description": "Refresh the access token using the `refreshToken` HttpOnly cookie. Returns a new access token and rotates the refresh token."
+          },
+          "response": []
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/logout",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "logout"]
+            },
+            "description": "Invalidate the current session. Revokes the refresh token and clears the cookie."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Current User (Me)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/me",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "me"]
+            },
+            "description": "Get the currently authenticated user's profile. Works for both company users and super admins."
+          },
+          "response": []
+        },
+        {
+          "name": "My Companies",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/my-companies",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "my-companies"]
+            },
+            "description": "List all approved companies the authenticated user (matched by email) has access to. Useful for multi-company accounts."
+          },
+          "response": []
+        },
+        {
+          "name": "Switch Company",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const body = pm.response.json();",
+                  "  if (body.data && body.data.accessToken) {",
+                  "    pm.collectionVariables.set('access_token', body.data.accessToken);",
+                  "    console.log('✅ access_token updated after company switch');",
+                  "  }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/switch-company/{{company_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "switch-company", "{{company_id}}"]
+            },
+            "description": "Switch the active session to a different company the user belongs to (matched by email). Issues new auth tokens for the target company."
+          },
+          "response": []
+        },
+        {
+          "name": "Forgot Password",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@acme.com\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/forgot-password",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "forgot-password"]
+            },
+            "description": "Request a password reset email. Always returns success to avoid leaking which emails exist.\n\n**Rate limited.**"
+          },
+          "response": []
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"reset_token_from_email\",\n  \"email\": \"admin@acme.com\",\n  \"newPassword\": \"NewSecurePass123!\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/reset-password",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "reset-password"]
+            },
+            "description": "Reset password using the token received via email. Invalidates all existing sessions.\n\n**Rate limited.**"
+          },
+          "response": []
+        },
+        {
+          "name": "Verify Email",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"verification_token_from_email\",\n  \"email\": \"admin@acme.com\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/verify-email",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "verify-email"]
+            },
+            "description": "Verify email address using the token from the verification email. For company admin registrations, this also submits the company for super admin review.\n\n**Rate limited.**"
+          },
+          "response": []
+        },
+        {
+          "name": "Resend Verification Email",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@acme.com\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/resend-verification",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "resend-verification"]
+            },
+            "description": "Resend the email verification link. Always returns success to avoid leaking which emails exist.\n\n**Rate limited.**"
+          },
+          "response": []
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"SecurePass123!\",\n  \"newPassword\": \"NewSecurePass456!\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/change-password",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "change-password"]
+            },
+            "description": "Change the authenticated user's password. Requires the current password for verification.\n\n**Requires authentication.**"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Super Admin",
+      "description": "Platform management endpoints — accessible only to super admins.",
+      "auth": {
+        "type": "bearer",
+        "bearer": [
+          {
+            "key": "token",
+            "value": "{{super_admin_token}}",
+            "type": "string"
+          }
+        ]
+      },
+      "item": [
+        {
+          "name": "Platform Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/super-admin/dashboard",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "super-admin", "dashboard"]
+            },
+            "description": "Get a high-level platform overview: total companies, pending approvals, active companies, and user counts."
+          },
+          "response": []
+        },
+        {
+          "name": "List Companies",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/super-admin/companies?page=1&limit=20&status=pending",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "super-admin", "companies"],
+              "query": [
+                { "key": "page", "value": "1", "description": "Page number (default: 1)" },
+                { "key": "limit", "value": "20", "description": "Items per page (max: 100)" },
+                { "key": "search", "value": "", "description": "Search by company name or email", "disabled": true },
+                { "key": "sort", "value": "", "description": "Sort field (e.g. createdAt)", "disabled": true },
+                { "key": "status", "value": "pending", "description": "Filter by status: pending | approved | rejected", "disabled": true },
+                { "key": "isActive", "value": "true", "description": "Filter by active status: true | false", "disabled": true }
+              ]
+            },
+            "description": "Paginated list of all companies. Filter by `status` (pending | approved | rejected) or `isActive`."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Company",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/super-admin/companies/{{company_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "super-admin", "companies", "{{company_id}}"]
+            },
+            "description": "Get full details of a single company by ID."
+          },
+          "response": []
+        },
+        {
+          "name": "List Company Users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/super-admin/companies/{{company_id}}/users",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "super-admin", "companies", "{{company_id}}", "users"]
+            },
+            "description": "List all users belonging to a specific company."
+          },
+          "response": []
+        },
+        {
+          "name": "Approve Company",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/super-admin/companies/{{company_id}}/approve",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "super-admin", "companies", "{{company_id}}", "approve"]
+            },
+            "description": "Approve a company registration. Sends approval email to the company admin."
+          },
+          "response": []
+        },
+        {
+          "name": "Reject Company",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Incomplete documentation provided. Please resubmit with valid business registration.\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/super-admin/companies/{{company_id}}/reject",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "super-admin", "companies", "{{company_id}}", "reject"]
+            },
+            "description": "Reject a company registration with a mandatory reason. Sends rejection email to the company admin."
+          },
+          "response": []
+        },
+        {
+          "name": "Suspend Company",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/super-admin/companies/{{company_id}}/suspend",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "super-admin", "companies", "{{company_id}}", "suspend"]
+            },
+            "description": "Suspend an active company, preventing its users from logging in."
+          },
+          "response": []
+        },
+        {
+          "name": "Reactivate Company",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/super-admin/companies/{{company_id}}/reactivate",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "super-admin", "companies", "{{company_id}}", "reactivate"]
+            },
+            "description": "Reactivate a previously suspended company."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Company",
+      "description": "Manage the authenticated user's company profile and settings.\n\n**Required roles:** company_admin (write), any role (read).",
+      "item": [
+        {
+          "name": "Get My Company",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/company/me",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "company", "me"]
+            },
+            "description": "Get the authenticated user's company profile including settings, branding, and onboarding status."
+          },
+          "response": []
+        },
+        {
+          "name": "Setup Company",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"legalName\": \"Acme Corporation Ltd.\",\n  \"industry\": \"Technology\",\n  \"brandColor\": \"#2563EB\",\n  \"address\": {\n    \"line1\": \"123 Business Street\",\n    \"line2\": \"Suite 400\",\n    \"city\": \"New York\",\n    \"state\": \"NY\",\n    \"country\": \"US\",\n    \"postalCode\": \"10001\"\n  },\n  \"phone\": \"+1-555-000-0000\",\n  \"website\": \"https://acme.example.com\",\n  \"taxId\": \"US12-3456789\",\n  \"currency\": \"USD\",\n  \"fiscalYearStartMonth\": 1,\n  \"completeOnboarding\": true\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/company/setup",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "company", "setup"]
+            },
+            "description": "Update company profile and onboarding information.\n\n**Required role:** company_admin\n\n- `brandColor`: Must be a valid hex color (e.g. `#2563EB`)\n- `currency`: 3-letter ISO code (e.g. `USD`, `EUR`, `PKR`)\n- `fiscalYearStartMonth`: 1–12\n- `completeOnboarding`: Set to `true` to mark onboarding as complete"
+          },
+          "response": []
+        },
+        {
+          "name": "Upload Company Logo",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "logo",
+                  "type": "file",
+                  "src": "",
+                  "description": "Company logo image (JPEG, PNG, WebP). Max 5MB."
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/company/logo",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "company", "logo"]
+            },
+            "description": "Upload a company logo. Accepts `multipart/form-data` with a `logo` field.\n\n**Required role:** company_admin\n\nSupported formats: JPEG, PNG, WebP. Maximum size: 5MB."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Invoice Settings",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"prefix\": \"INV\",\n  \"nextNumber\": 1001,\n  \"numberPadding\": 4,\n  \"defaultPaymentTermsDays\": 30,\n  \"defaultTemplateId\": \"{{template_id}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/company/invoice-settings",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "company", "invoice-settings"]
+            },
+            "description": "Update invoice numbering and default settings.\n\n**Required role:** company_admin\n\n- `prefix`: Up to 10 characters (e.g. `INV`)\n- `nextNumber`: The next invoice number to use\n- `numberPadding`: Number of zero-padded digits (1–10)\n- `defaultPaymentTermsDays`: 0–365"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Payroll Settings",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"payDay\": 28,\n  \"defaultWorkingDaysPerMonth\": 22,\n  \"taxEnabled\": true,\n  \"taxDeductionLabel\": \"Income Tax\",\n  \"taxSlabs\": [\n    { \"upTo\": 600000, \"rate\": 0 },\n    { \"upTo\": 1200000, \"rate\": 5 },\n    { \"upTo\": 2400000, \"rate\": 10 },\n    { \"rate\": 15 }\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/company/payroll-settings",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "company", "payroll-settings"]
+            },
+            "description": "Update payroll processing settings including tax slabs.\n\n**Required role:** company_admin\n\n- `payDay`: 1–31\n- `defaultWorkingDaysPerMonth`: 1–31\n- `taxSlabs`: Array of `{ upTo?, rate }` — last slab can omit `upTo` to act as the catch-all"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "description": "Manage team members (users) within the company.\n\n**Required roles:** company_admin (write), any role (read).",
+      "item": [
+        {
+          "name": "List Users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/users?page=1&limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "users"],
+              "query": [
+                { "key": "page", "value": "1", "description": "Page number" },
+                { "key": "limit", "value": "20", "description": "Items per page (max: 100)" },
+                { "key": "search", "value": "", "description": "Search by name or email", "disabled": true },
+                { "key": "sort", "value": "", "description": "Sort field", "disabled": true },
+                { "key": "role", "value": "company_admin", "description": "Filter by role: company_admin | hr_manager | accountant | staff", "disabled": true },
+                { "key": "isActive", "value": "true", "description": "Filter active/inactive: true | false", "disabled": true }
+              ]
+            },
+            "description": "Paginated list of all users in the company. Filter by `role` or `isActive`."
+          },
+          "response": []
+        },
+        {
+          "name": "Create User",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Jane Smith\",\n  \"email\": \"jane.smith@acme.com\",\n  \"role\": \"hr_manager\",\n  \"password\": \"TempPass123!\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/users",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "users"]
+            },
+            "description": "Invite a new user to the company. Sends an invite email.\n\n**Required role:** company_admin\n\n- `role`: company_admin | hr_manager | accountant | staff\n- `password`: Optional. If omitted, the user must set their password via email."
+          },
+          "response": []
+        },
+        {
+          "name": "Get User",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/users/{{user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "users", "{{user_id}}"]
+            },
+            "description": "Get a single user by MongoDB ObjectId."
+          },
+          "response": []
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Jane Smith\",\n  \"role\": \"accountant\",\n  \"isActive\": true\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/users/{{user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "users", "{{user_id}}"]
+            },
+            "description": "Update a user's name, role, or active status.\n\n**Required role:** company_admin\n\nAt least one field must be provided."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/users/{{user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "users", "{{user_id}}"]
+            },
+            "description": "Permanently delete a user from the company.\n\n**Required role:** company_admin"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Clients",
+      "description": "Manage billing clients.\n\n**Required roles:** company_admin, accountant (write); any role (read).",
+      "item": [
+        {
+          "name": "List Clients",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/clients?page=1&limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "clients"],
+              "query": [
+                { "key": "page", "value": "1", "description": "Page number" },
+                { "key": "limit", "value": "20", "description": "Items per page (max: 100)" },
+                { "key": "search", "value": "", "description": "Search by name or email", "disabled": true },
+                { "key": "sort", "value": "", "description": "Sort field", "disabled": true },
+                { "key": "isActive", "value": "true", "description": "Filter active/inactive: true | false", "disabled": true }
+              ]
+            },
+            "description": "Paginated list of all clients."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Client",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"TechCorp Inc.\",\n  \"email\": \"billing@techcorp.com\",\n  \"phone\": \"+1-555-111-2222\",\n  \"companyNameOfClient\": \"TechCorp Inc.\",\n  \"billingAddress\": {\n    \"line1\": \"456 Tech Avenue\",\n    \"city\": \"San Francisco\",\n    \"state\": \"CA\",\n    \"country\": \"US\",\n    \"postalCode\": \"94102\"\n  },\n  \"taxId\": \"US98-7654321\",\n  \"notes\": \"Net-30 payment terms preferred.\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/clients",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "clients"]
+            },
+            "description": "Create a new billing client.\n\n**Required roles:** company_admin, accountant"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Client",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/clients/{{client_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "clients", "{{client_id}}"]
+            },
+            "description": "Get a single client by ID."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Client Invoices",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/clients/{{client_id}}/invoices",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "clients", "{{client_id}}", "invoices"]
+            },
+            "description": "Get all invoices associated with a specific client."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Client",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"TechCorp International\",\n  \"phone\": \"+1-555-111-3333\",\n  \"isActive\": true\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/clients/{{client_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "clients", "{{client_id}}"]
+            },
+            "description": "Update client details.\n\n**Required roles:** company_admin, accountant"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Client",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/clients/{{client_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "clients", "{{client_id}}"]
+            },
+            "description": "Permanently delete a client.\n\n**Required roles:** company_admin, accountant"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Invoice Templates",
+      "description": "Manage PDF invoice templates with custom branding, layout, and design.\n\n**Required roles:** company_admin, accountant (write); any role (read).",
+      "item": [
+        {
+          "name": "List Templates",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/invoice-templates",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "invoice-templates"]
+            },
+            "description": "List all invoice templates for the company."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Template",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Modern Blue Template\",\n  \"baseTheme\": \"modern\",\n  \"isDefault\": true,\n  \"design\": {\n    \"layout\": {\n      \"pageSize\": \"A4\",\n      \"orientation\": \"portrait\",\n      \"margins\": { \"top\": 40, \"right\": 40, \"bottom\": 40, \"left\": 40 },\n      \"headerStyle\": \"logo-left\"\n    },\n    \"branding\": {\n      \"showLogo\": true,\n      \"primaryColor\": \"#2563EB\",\n      \"secondaryColor\": \"#1E293B\",\n      \"accentColor\": \"#0EA5E9\",\n      \"backgroundColor\": \"#FFFFFF\",\n      \"textColor\": \"#111111\"\n    },\n    \"typography\": {\n      \"fontFamily\": \"Inter\",\n      \"baseFontSize\": 11,\n      \"headingFontSize\": 22\n    },\n    \"sections\": {\n      \"companyInfo\": { \"visible\": true, \"order\": 1, \"fields\": [\"name\", \"address\", \"email\", \"phone\", \"taxId\", \"website\"] },\n      \"clientInfo\": { \"visible\": true, \"order\": 2, \"label\": \"Bill To\" },\n      \"invoiceMeta\": { \"visible\": true, \"order\": 3, \"fields\": [\"invoiceNumber\", \"issueDate\", \"dueDate\", \"poNumber\"] },\n      \"itemsTable\": { \"visible\": true, \"order\": 4, \"columns\": [], \"zebraStripes\": false, \"headerBackgroundColor\": \"#F1F5F9\" },\n      \"summary\": { \"visible\": true, \"order\": 5, \"fields\": [\"subTotal\", \"discount\", \"tax\", \"shipping\", \"grandTotal\"] },\n      \"notes\": { \"visible\": true, \"order\": 6, \"label\": \"Notes\" },\n      \"terms\": { \"visible\": true, \"order\": 7, \"label\": \"Terms & Conditions\" },\n      \"paymentInstructions\": { \"visible\": false, \"order\": 8, \"content\": \"\" },\n      \"signature\": { \"visible\": false, \"order\": 9 },\n      \"footer\": { \"visible\": true, \"order\": 10, \"content\": \"Thank you for your business\" }\n    },\n    \"watermark\": { \"enabled\": false, \"text\": \"\", \"opacity\": 0.1 }\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/invoice-templates",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "invoice-templates"]
+            },
+            "description": "Create a new invoice template with custom design.\n\n**Required roles:** company_admin, accountant\n\n- `baseTheme`: classic | modern | minimal | bold | custom\n- `headerStyle`: logo-left | logo-right | logo-center | logo-top-banner\n- `fontFamily`: Inter | Roboto | Lato | Merriweather | Poppins | Custom"
+          },
+          "response": []
+        },
+        {
+          "name": "Preview Unsaved Template",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"design\": {\n    \"layout\": {\n      \"pageSize\": \"A4\",\n      \"orientation\": \"portrait\",\n      \"margins\": { \"top\": 40, \"right\": 40, \"bottom\": 40, \"left\": 40 },\n      \"headerStyle\": \"logo-left\"\n    },\n    \"branding\": {\n      \"showLogo\": true,\n      \"primaryColor\": \"#16A34A\",\n      \"secondaryColor\": \"#1E293B\",\n      \"accentColor\": \"#22C55E\",\n      \"backgroundColor\": \"#FFFFFF\",\n      \"textColor\": \"#111111\"\n    },\n    \"typography\": {\n      \"fontFamily\": \"Poppins\",\n      \"baseFontSize\": 11,\n      \"headingFontSize\": 22\n    },\n    \"sections\": {\n      \"companyInfo\": { \"visible\": true, \"order\": 1, \"fields\": [\"name\", \"address\", \"email\"] },\n      \"clientInfo\": { \"visible\": true, \"order\": 2, \"label\": \"Bill To\" },\n      \"invoiceMeta\": { \"visible\": true, \"order\": 3, \"fields\": [\"invoiceNumber\", \"issueDate\", \"dueDate\"] },\n      \"itemsTable\": { \"visible\": true, \"order\": 4, \"columns\": [], \"zebraStripes\": true, \"headerBackgroundColor\": \"#F0FDF4\" },\n      \"summary\": { \"visible\": true, \"order\": 5, \"fields\": [\"subTotal\", \"tax\", \"grandTotal\"] },\n      \"notes\": { \"visible\": true, \"order\": 6, \"label\": \"Notes\" },\n      \"terms\": { \"visible\": true, \"order\": 7, \"label\": \"Terms & Conditions\" },\n      \"paymentInstructions\": { \"visible\": false, \"order\": 8, \"content\": \"\" },\n      \"signature\": { \"visible\": false, \"order\": 9 },\n      \"footer\": { \"visible\": true, \"order\": 10, \"content\": \"Thank you!\" }\n    },\n    \"watermark\": { \"enabled\": false, \"text\": \"\", \"opacity\": 0.1 }\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/invoice-templates/preview",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "invoice-templates", "preview"]
+            },
+            "description": "Generate a PDF preview of an unsaved template design without creating a template record. Returns HTML or PDF for rendering."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Template",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/invoice-templates/{{template_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "invoice-templates", "{{template_id}}"]
+            },
+            "description": "Get a single invoice template by ID."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Template",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Modern Blue Template v2\",\n  \"baseTheme\": \"modern\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/invoice-templates/{{template_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "invoice-templates", "{{template_id}}"]
+            },
+            "description": "Update a template's name, base theme, or design.\n\n**Required roles:** company_admin, accountant"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Template",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/invoice-templates/{{template_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "invoice-templates", "{{template_id}}"]
+            },
+            "description": "Delete an invoice template.\n\n**Required roles:** company_admin, accountant"
+          },
+          "response": []
+        },
+        {
+          "name": "Clone Template",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Modern Blue Template (Copy)\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/invoice-templates/{{template_id}}/clone",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "invoice-templates", "{{template_id}}", "clone"]
+            },
+            "description": "Clone an existing template with a new name.\n\n**Required roles:** company_admin, accountant"
+          },
+          "response": []
+        },
+        {
+          "name": "Set Default Template",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/invoice-templates/{{template_id}}/set-default",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "invoice-templates", "{{template_id}}", "set-default"]
+            },
+            "description": "Set a template as the default for new invoices.\n\n**Required roles:** company_admin, accountant"
+          },
+          "response": []
+        },
+        {
+          "name": "Preview Saved Template",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/invoice-templates/{{template_id}}/preview",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "invoice-templates", "{{template_id}}", "preview"]
+            },
+            "description": "Generate a PDF preview using a saved template with sample data."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Invoices",
+      "description": "Full invoice lifecycle management: create, send, track payments, cancel.\n\n**Required roles:** company_admin, accountant (write); any role (read).",
+      "item": [
+        {
+          "name": "Get Public Invoice (No Auth)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/invoices/public/{{share_token}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "invoices", "public", "{{share_token}}"]
+            },
+            "description": "Get an invoice by its public share token. No authentication required — intended for client-facing share links."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Public Invoice PDF (No Auth)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/invoices/public/{{share_token}}/pdf",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "invoices", "public", "{{share_token}}", "pdf"]
+            },
+            "description": "Download the PDF of an invoice using its public share token. No authentication required."
+          },
+          "response": []
+        },
+        {
+          "name": "List Invoices",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/invoices?page=1&limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "invoices"],
+              "query": [
+                { "key": "page", "value": "1", "description": "Page number" },
+                { "key": "limit", "value": "20", "description": "Items per page (max: 100)" },
+                { "key": "search", "value": "", "description": "Search by invoice number or client name", "disabled": true },
+                { "key": "sort", "value": "", "description": "Sort field (e.g. -issueDate)", "disabled": true },
+                { "key": "status", "value": "draft", "description": "Filter by status: draft | sent | paid | partially_paid | overdue | cancelled", "disabled": true },
+                { "key": "clientId", "value": "{{client_id}}", "description": "Filter by client ObjectId", "disabled": true },
+                { "key": "dateFrom", "value": "2025-01-01", "description": "Filter invoices issued from this date (ISO format)", "disabled": true },
+                { "key": "dateTo", "value": "2025-12-31", "description": "Filter invoices issued up to this date (ISO format)", "disabled": true }
+              ]
+            },
+            "description": "Paginated list of invoices. Filter by `status`, `clientId`, or date range."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Invoice",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"clientId\": \"{{client_id}}\",\n  \"templateId\": \"{{template_id}}\",\n  \"issueDate\": \"2025-06-01\",\n  \"dueDate\": \"2025-07-01\",\n  \"items\": [\n    {\n      \"description\": \"Web Development Services — June 2025\",\n      \"quantity\": 80,\n      \"unitPrice\": 75,\n      \"taxRate\": 10,\n      \"discount\": 5,\n      \"discountType\": \"percentage\"\n    },\n    {\n      \"description\": \"UI/UX Design\",\n      \"quantity\": 20,\n      \"unitPrice\": 90\n    }\n  ],\n  \"shippingFee\": 0,\n  \"currency\": \"USD\",\n  \"notes\": \"Payment due within 30 days of issue date.\",\n  \"termsAndConditions\": \"Late payments are subject to a 1.5% monthly interest charge.\",\n  \"poNumber\": \"PO-2025-0456\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/invoices",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "invoices"]
+            },
+            "description": "Create a new invoice in DRAFT status.\n\n**Required roles:** company_admin, accountant\n\n- At least one line item is required\n- `discountType`: percentage | flat\n- `currency`: 3-letter ISO code"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Invoice",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/invoices/{{invoice_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "invoices", "{{invoice_id}}"]
+            },
+            "description": "Get a single invoice by ID with all details."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Invoice PDF",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/invoices/{{invoice_id}}/pdf",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "invoices", "{{invoice_id}}", "pdf"]
+            },
+            "description": "Download the generated PDF for an invoice. Returns the PDF file or a URL to it."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Invoice",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dueDate\": \"2025-07-15\",\n  \"notes\": \"Updated payment terms: Net-45.\",\n  \"items\": [\n    {\n      \"description\": \"Web Development Services — June 2025\",\n      \"quantity\": 80,\n      \"unitPrice\": 75,\n      \"taxRate\": 10\n    }\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/invoices/{{invoice_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "invoices", "{{invoice_id}}"]
+            },
+            "description": "Update a DRAFT invoice. Sent or finalized invoices may have limited update capabilities.\n\n**Required roles:** company_admin, accountant"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Invoice",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/invoices/{{invoice_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "invoices", "{{invoice_id}}"]
+            },
+            "description": "Permanently delete an invoice.\n\n**Required roles:** company_admin, accountant"
+          },
+          "response": []
+        },
+        {
+          "name": "Cancel Invoice",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Client requested cancellation due to project scope change.\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/invoices/{{invoice_id}}/cancel",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "invoices", "{{invoice_id}}", "cancel"]
+            },
+            "description": "Cancel an invoice with an optional reason.\n\n**Required roles:** company_admin, accountant"
+          },
+          "response": []
+        },
+        {
+          "name": "Send Invoice",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/invoices/{{invoice_id}}/send",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "invoices", "{{invoice_id}}", "send"]
+            },
+            "description": "Mark an invoice as SENT and email it to the client. Status changes from DRAFT → SENT.\n\n**Required roles:** company_admin, accountant"
+          },
+          "response": []
+        },
+        {
+          "name": "Record Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 3000.00,\n  \"paidOn\": \"2025-06-20\",\n  \"method\": \"bank_transfer\",\n  \"reference\": \"TXN-20250620-001\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/invoices/{{invoice_id}}/record-payment",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "invoices", "{{invoice_id}}", "record-payment"]
+            },
+            "description": "Record a payment against an invoice. Automatically updates the invoice status to PAID or PARTIALLY_PAID.\n\n**Required roles:** company_admin, accountant\n\n- `method`: cash | bank_transfer | card | cheque | other\n- `amount`: Must be greater than 0"
+          },
+          "response": []
+        },
+        {
+          "name": "Send Payment Reminder",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/invoices/{{invoice_id}}/send-reminder",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "invoices", "{{invoice_id}}", "send-reminder"]
+            },
+            "description": "Send a payment reminder email to the client for an outstanding invoice.\n\n**Required roles:** company_admin, accountant"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Departments",
+      "description": "Manage organizational departments.\n\n**Required roles:** company_admin, hr_manager (write); any role (read).",
+      "item": [
+        {
+          "name": "List Departments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/departments?page=1&limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "departments"],
+              "query": [
+                { "key": "page", "value": "1", "description": "Page number" },
+                { "key": "limit", "value": "20", "description": "Items per page (max: 100)" },
+                { "key": "search", "value": "", "description": "Search by department name", "disabled": true },
+                { "key": "sort", "value": "", "description": "Sort field", "disabled": true }
+              ]
+            },
+            "description": "Paginated list of all departments."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Department",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Engineering\",\n  \"description\": \"Software engineering and development team\",\n  \"headOfDepartment\": \"{{employee_id}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/departments",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "departments"]
+            },
+            "description": "Create a new department.\n\n**Required roles:** company_admin, hr_manager\n\n- `headOfDepartment`: MongoDB ObjectId of an employee (optional)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Department",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/departments/{{department_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "departments", "{{department_id}}"]
+            },
+            "description": "Get a single department by ID."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Department",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Engineering & DevOps\",\n  \"description\": \"Software engineering, DevOps and infrastructure\",\n  \"isActive\": true\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/departments/{{department_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "departments", "{{department_id}}"]
+            },
+            "description": "Update a department's details or active status.\n\n**Required roles:** company_admin, hr_manager"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Department",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/departments/{{department_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "departments", "{{department_id}}"]
+            },
+            "description": "Delete a department.\n\n**Required roles:** company_admin, hr_manager"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Employees",
+      "description": "Manage employee profiles, salary structures, and avatars.\n\n**Required roles:** company_admin, hr_manager (write); any role (read).",
+      "item": [
+        {
+          "name": "List Employees",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/employees?page=1&limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "employees"],
+              "query": [
+                { "key": "page", "value": "1", "description": "Page number" },
+                { "key": "limit", "value": "20", "description": "Items per page (max: 100)" },
+                { "key": "search", "value": "", "description": "Search by name, email, or employee code", "disabled": true },
+                { "key": "sort", "value": "", "description": "Sort field (e.g. -dateOfJoining)", "disabled": true },
+                { "key": "departmentId", "value": "{{department_id}}", "description": "Filter by department ObjectId", "disabled": true },
+                { "key": "status", "value": "active", "description": "Filter by status: active | inactive | terminated", "disabled": true }
+              ]
+            },
+            "description": "Paginated list of employees. Filter by `departmentId` or `status`."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Employee",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employeeCode\": \"EMP-001\",\n  \"firstName\": \"Alice\",\n  \"lastName\": \"Johnson\",\n  \"email\": \"alice.johnson@acme.com\",\n  \"phone\": \"+1-555-444-5555\",\n  \"departmentId\": \"{{department_id}}\",\n  \"designation\": \"Senior Software Engineer\",\n  \"employmentType\": \"full_time\",\n  \"dateOfJoining\": \"2024-01-15\",\n  \"salaryStructure\": {\n    \"name\": \"Senior Engineer Package\",\n    \"baseSalary\": 8000,\n    \"allowances\": [\n      { \"name\": \"Housing Allowance\", \"type\": \"fixed\", \"value\": 1000, \"taxable\": false },\n      { \"name\": \"Transport Allowance\", \"type\": \"fixed\", \"value\": 500, \"taxable\": false },\n      { \"name\": \"Performance Bonus\", \"type\": \"percentage_of_base\", \"value\": 10, \"taxable\": true }\n    ],\n    \"deductions\": [\n      { \"name\": \"Provident Fund\", \"type\": \"percentage_of_base\", \"value\": 5, \"taxable\": false }\n    ],\n    \"effectiveFrom\": \"2024-01-15\"\n  },\n  \"bankDetails\": {\n    \"accountTitle\": \"Alice Johnson\",\n    \"accountNumber\": \"1234567890\",\n    \"bankName\": \"First National Bank\",\n    \"branchCode\": \"001\"\n  },\n  \"address\": {\n    \"line1\": \"789 Residential Ave\",\n    \"city\": \"Austin\",\n    \"state\": \"TX\",\n    \"country\": \"US\",\n    \"postalCode\": \"78701\"\n  },\n  \"emergencyContact\": {\n    \"name\": \"Bob Johnson\",\n    \"phone\": \"+1-555-444-6666\",\n    \"relation\": \"Spouse\"\n  }\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/employees",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "employees"]
+            },
+            "description": "Create a new employee record with salary structure.\n\n**Required roles:** company_admin, hr_manager\n\n- Must provide either `salaryStructureId` (reference existing) OR `salaryStructure` (create inline)\n- `employmentType`: full_time | part_time | contract\n- `allowances/deductions type`: fixed | percentage_of_base"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Employee",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/employees/{{employee_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "employees", "{{employee_id}}"]
+            },
+            "description": "Get a single employee's full profile by ID."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Employee Salary Slips",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/employees/{{employee_id}}/salary-slips",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "employees", "{{employee_id}}", "salary-slips"]
+            },
+            "description": "Get all salary slips generated for a specific employee."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Employee",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"designation\": \"Principal Software Engineer\",\n  \"status\": \"active\",\n  \"salaryStructureId\": \"{{salary_structure_id}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/employees/{{employee_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "employees", "{{employee_id}}"]
+            },
+            "description": "Update employee profile details.\n\n**Required roles:** company_admin, hr_manager\n\n- `status`: active | inactive | terminated\n- `dateOfLeaving`: Required when setting status to terminated"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Employee",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/employees/{{employee_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "employees", "{{employee_id}}"]
+            },
+            "description": "Permanently delete an employee record.\n\n**Required roles:** company_admin, hr_manager"
+          },
+          "response": []
+        },
+        {
+          "name": "Upload Employee Avatar",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "avatar",
+                  "type": "file",
+                  "src": "",
+                  "description": "Employee avatar image (JPEG, PNG, WebP). Max 5MB."
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/employees/{{employee_id}}/avatar",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "employees", "{{employee_id}}", "avatar"]
+            },
+            "description": "Upload or replace an employee's avatar photo.\n\n**Required roles:** company_admin, hr_manager\n\nSupported formats: JPEG, PNG, WebP. Maximum size: 5MB."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Salary Structures",
+      "description": "Reusable salary templates with base salary, allowances, and deductions.\n\n**Required roles:** company_admin, hr_manager (write); any role (read).",
+      "item": [
+        {
+          "name": "List Salary Structures",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/salary-structures?page=1&limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "salary-structures"],
+              "query": [
+                { "key": "page", "value": "1", "description": "Page number" },
+                { "key": "limit", "value": "20", "description": "Items per page (max: 100)" },
+                { "key": "search", "value": "", "description": "Search by name", "disabled": true },
+                { "key": "sort", "value": "", "description": "Sort field", "disabled": true },
+                { "key": "isTemplate", "value": "true", "description": "Filter template structures only: true | false", "disabled": true }
+              ]
+            },
+            "description": "Paginated list of salary structures. Use `isTemplate=true` to show only reusable templates."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Salary Structure",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Senior Engineer Package\",\n  \"isTemplate\": true,\n  \"baseSalary\": 8000,\n  \"allowances\": [\n    { \"name\": \"Housing Allowance\", \"type\": \"fixed\", \"value\": 1000, \"taxable\": false },\n    { \"name\": \"Transport Allowance\", \"type\": \"fixed\", \"value\": 500, \"taxable\": false },\n    { \"name\": \"Performance Bonus\", \"type\": \"percentage_of_base\", \"value\": 10, \"taxable\": true }\n  ],\n  \"deductions\": [\n    { \"name\": \"Provident Fund\", \"type\": \"percentage_of_base\", \"value\": 5, \"taxable\": false },\n    { \"name\": \"Health Insurance\", \"type\": \"fixed\", \"value\": 200, \"taxable\": false }\n  ],\n  \"effectiveFrom\": \"2024-01-01\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/salary-structures",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "salary-structures"]
+            },
+            "description": "Create a new salary structure or template.\n\n**Required roles:** company_admin, hr_manager\n\n- `type`: fixed | percentage_of_base\n- `isTemplate`: Set to `true` to make it reusable across multiple employees"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Salary Structure",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/salary-structures/{{salary_structure_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "salary-structures", "{{salary_structure_id}}"]
+            },
+            "description": "Get a single salary structure by ID."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Salary Structure",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"baseSalary\": 9000,\n  \"allowances\": [\n    { \"name\": \"Housing Allowance\", \"type\": \"fixed\", \"value\": 1200, \"taxable\": false }\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/salary-structures/{{salary_structure_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "salary-structures", "{{salary_structure_id}}"]
+            },
+            "description": "Update a salary structure. All fields are optional.\n\n**Required roles:** company_admin, hr_manager"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Salary Structure",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/salary-structures/{{salary_structure_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "salary-structures", "{{salary_structure_id}}"]
+            },
+            "description": "Delete a salary structure.\n\n**Required roles:** company_admin, hr_manager"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Payroll",
+      "description": "Process, manage, and report on payroll runs.\n\n**Required roles:** company_admin, hr_manager (write); any role (read).",
+      "item": [
+        {
+          "name": "List Payroll Runs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/payroll?page=1&limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "payroll"],
+              "query": [
+                { "key": "page", "value": "1", "description": "Page number" },
+                { "key": "limit", "value": "20", "description": "Items per page (max: 100)" },
+                { "key": "sort", "value": "", "description": "Sort field (e.g. -createdAt)", "disabled": true },
+                { "key": "year", "value": "2025", "description": "Filter by year", "disabled": true },
+                { "key": "status", "value": "completed", "description": "Filter by status: draft | processing | completed | cancelled", "disabled": true }
+              ]
+            },
+            "description": "Paginated list of payroll runs. Filter by `year` or `status`."
+          },
+          "response": []
+        },
+        {
+          "name": "Payroll Summary Report",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/payroll/reports/summary?months=6",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "payroll", "reports", "summary"],
+              "query": [
+                { "key": "months", "value": "6", "description": "Number of recent months to include in the summary (1–36, default: 6)" }
+              ]
+            },
+            "description": "Get a payroll summary report for the last N months including total costs, department breakdown, and trend data."
+          },
+          "response": []
+        },
+        {
+          "name": "Process Payroll",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"month\": 6,\n  \"year\": 2025,\n  \"notes\": \"June 2025 payroll run including all active employees.\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/payroll/process",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "payroll", "process"]
+            },
+            "description": "Trigger a payroll run for the specified month/year.\n\n**Required roles:** company_admin, hr_manager\n\n- `month`: 1–12\n- `year`: 2000–2100\n- `employeeIds`: Optional array of employee ObjectIds to limit the run. If omitted, all active employees are processed.\n- For companies with >50 active employees, processing is handled asynchronously via a background job."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Payroll Run",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/payroll/{{payroll_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "payroll", "{{payroll_id}}"]
+            },
+            "description": "Get a single payroll run by ID with full details and statistics."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Payroll Slips",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/payroll/{{payroll_id}}/slips",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "payroll", "{{payroll_id}}", "slips"]
+            },
+            "description": "Get all salary slips generated as part of a specific payroll run."
+          },
+          "response": []
+        },
+        {
+          "name": "Finalize Payroll",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/payroll/{{payroll_id}}/finalize",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "payroll", "{{payroll_id}}", "finalize"]
+            },
+            "description": "Finalize a payroll run, locking it from further changes. Status changes to COMPLETED.\n\n**Required roles:** company_admin, hr_manager"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Payroll Run",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/payroll/{{payroll_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "payroll", "{{payroll_id}}"]
+            },
+            "description": "Delete a payroll run (only allowed if status is DRAFT).\n\n**Required roles:** company_admin, hr_manager"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Salary Slips",
+      "description": "View, download, and manage individual salary slips.\n\n**Required roles:** company_admin, hr_manager (mark paid); any role (read).",
+      "item": [
+        {
+          "name": "List Salary Slips",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/salary-slips?page=1&limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "salary-slips"],
+              "query": [
+                { "key": "page", "value": "1", "description": "Page number" },
+                { "key": "limit", "value": "20", "description": "Items per page (max: 100)" },
+                { "key": "sort", "value": "", "description": "Sort field", "disabled": true },
+                { "key": "employeeId", "value": "{{employee_id}}", "description": "Filter by employee ObjectId", "disabled": true },
+                { "key": "payrollId", "value": "{{payroll_id}}", "description": "Filter by payroll run ObjectId", "disabled": true },
+                { "key": "month", "value": "6", "description": "Filter by month (1–12)", "disabled": true },
+                { "key": "year", "value": "2025", "description": "Filter by year", "disabled": true },
+                { "key": "paymentStatus", "value": "pending", "description": "Filter by payment status: pending | paid", "disabled": true }
+              ]
+            },
+            "description": "Paginated list of salary slips. Filter by employee, payroll run, period, or payment status."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Salary Slip",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/salary-slips/{{salary_slip_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "salary-slips", "{{salary_slip_id}}"]
+            },
+            "description": "Get a single salary slip by ID with full breakdown."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Salary Slip PDF",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/salary-slips/{{salary_slip_id}}/pdf",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "salary-slips", "{{salary_slip_id}}", "pdf"]
+            },
+            "description": "Download the PDF of a salary slip."
+          },
+          "response": []
+        },
+        {
+          "name": "Mark Salary Slip Paid",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"paidOn\": \"2025-06-28\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/salary-slips/{{salary_slip_id}}/mark-paid",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "salary-slips", "{{salary_slip_id}}", "mark-paid"]
+            },
+            "description": "Mark a salary slip as paid with an optional payment date.\n\n**Required roles:** company_admin, hr_manager"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "description": "Financial analytics and reporting dashboards.\n\n**Required roles:** company_admin, hr_manager, accountant.",
+      "item": [
+        {
+          "name": "Overview",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/dashboard/overview",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "dashboard", "overview"]
+            },
+            "description": "High-level overview: total revenue, outstanding invoices, total employees, payroll cost this month, and pending tasks."
+          },
+          "response": []
+        },
+        {
+          "name": "Revenue Trend",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/dashboard/revenue-trend?months=6",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "dashboard", "revenue-trend"],
+              "query": [
+                { "key": "months", "value": "6", "description": "Number of months (1–36)" },
+                { "key": "from", "value": "2025-01-01", "description": "Start date (ISO format)", "disabled": true },
+                { "key": "to", "value": "2025-06-30", "description": "End date (ISO format)", "disabled": true }
+              ]
+            },
+            "description": "Monthly revenue trend data (paid invoices) for the last N months or a custom date range."
+          },
+          "response": []
+        },
+        {
+          "name": "Invoice Status Breakdown",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/dashboard/invoice-status-breakdown",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "dashboard", "invoice-status-breakdown"]
+            },
+            "description": "Count and total value of invoices grouped by status (draft, sent, paid, partially_paid, overdue, cancelled)."
+          },
+          "response": []
+        },
+        {
+          "name": "Payroll Trend",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/dashboard/payroll-trend?months=6",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "dashboard", "payroll-trend"],
+              "query": [
+                { "key": "months", "value": "6", "description": "Number of months (1–36)" },
+                { "key": "from", "value": "2025-01-01", "description": "Start date", "disabled": true },
+                { "key": "to", "value": "2025-06-30", "description": "End date", "disabled": true }
+              ]
+            },
+            "description": "Monthly payroll cost trend for the last N months."
+          },
+          "response": []
+        },
+        {
+          "name": "Outstanding Clients",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/dashboard/outstanding-clients?limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "dashboard", "outstanding-clients"],
+              "query": [
+                { "key": "limit", "value": "10", "description": "Number of top clients to return (1–50)" }
+              ]
+            },
+            "description": "Top clients ranked by outstanding (unpaid) invoice amounts."
+          },
+          "response": []
+        },
+        {
+          "name": "Financial Summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/dashboard/financial-summary?from=2025-01-01&to=2025-06-30",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "dashboard", "financial-summary"],
+              "query": [
+                { "key": "from", "value": "2025-01-01", "description": "Start date (ISO format)" },
+                { "key": "to", "value": "2025-06-30", "description": "End date (ISO format)" }
+              ]
+            },
+            "description": "Aggregated financial summary for a period: total invoiced, collected, outstanding, payroll costs, and net income."
+          },
+          "response": []
+        },
+        {
+          "name": "AR Aging",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/dashboard/ar-aging",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "dashboard", "ar-aging"]
+            },
+            "description": "Accounts receivable aging report: buckets of outstanding invoices by age (0–30, 31–60, 61–90, 90+ days)."
+          },
+          "response": []
+        },
+        {
+          "name": "Collection Metrics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/dashboard/collection-metrics?from=2025-01-01&to=2025-06-30",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "dashboard", "collection-metrics"],
+              "query": [
+                { "key": "from", "value": "2025-01-01", "description": "Start date" },
+                { "key": "to", "value": "2025-06-30", "description": "End date" }
+              ]
+            },
+            "description": "Collection performance metrics: collection rate, average days to payment, and total collected vs billed."
+          },
+          "response": []
+        },
+        {
+          "name": "Revenue by Client",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/dashboard/revenue-by-client?from=2025-01-01&to=2025-06-30&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "dashboard", "revenue-by-client"],
+              "query": [
+                { "key": "from", "value": "2025-01-01", "description": "Start date" },
+                { "key": "to", "value": "2025-06-30", "description": "End date" },
+                { "key": "limit", "value": "10", "description": "Number of top clients (1–50)" }
+              ]
+            },
+            "description": "Revenue breakdown by client for the specified period."
+          },
+          "response": []
+        },
+        {
+          "name": "Payroll by Department",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/dashboard/payroll-by-department?from=2025-01-01&to=2025-06-30",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "dashboard", "payroll-by-department"],
+              "query": [
+                { "key": "from", "value": "2025-01-01", "description": "Start date" },
+                { "key": "to", "value": "2025-06-30", "description": "End date" }
+              ]
+            },
+            "description": "Payroll cost breakdown by department for the specified period."
+          },
+          "response": []
+        },
+        {
+          "name": "Cash Flow Forecast",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/dashboard/cash-flow-forecast",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "dashboard", "cash-flow-forecast"]
+            },
+            "description": "Projected cash flow based on outstanding invoices due dates and estimated payroll obligations."
+          },
+          "response": []
+        },
+        {
+          "name": "Export Financial Report",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/dashboard/report/export?format=pdf&from=2025-01-01&to=2025-06-30",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "dashboard", "report", "export"],
+              "query": [
+                { "key": "format", "value": "pdf", "description": "Export format: pdf | csv" },
+                { "key": "from", "value": "2025-01-01", "description": "Start date (ISO format)" },
+                { "key": "to", "value": "2025-06-30", "description": "End date (ISO format)" }
+              ]
+            },
+            "description": "Export the full financial report as PDF or CSV for the given date range."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Audit Logs",
+      "description": "Immutable audit trail of all state-changing operations.\n\n**Required role:** company_admin only.",
+      "item": [
+        {
+          "name": "List Audit Logs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/audit-logs?page=1&limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "audit-logs"],
+              "query": [
+                { "key": "page", "value": "1", "description": "Page number" },
+                { "key": "limit", "value": "20", "description": "Items per page (max: 100)" },
+                { "key": "search", "value": "", "description": "Full-text search", "disabled": true },
+                { "key": "sort", "value": "", "description": "Sort field (e.g. -createdAt)", "disabled": true },
+                { "key": "action", "value": "auth.login", "description": "Filter by action string (e.g. auth.login, employee.create)", "disabled": true },
+                { "key": "status", "value": "success", "description": "Filter by outcome: success | failed", "disabled": true },
+                { "key": "actorId", "value": "{{user_id}}", "description": "Filter by actor user ObjectId", "disabled": true },
+                { "key": "targetType", "value": "Employee", "description": "Filter by target resource type", "disabled": true },
+                { "key": "dateFrom", "value": "2025-01-01", "description": "Filter from date (ISO format)", "disabled": true },
+                { "key": "dateTo", "value": "2025-06-30", "description": "Filter to date (ISO format)", "disabled": true }
+              ]
+            },
+            "description": "Paginated audit log. Filter by action, actor, resource type, date range, or outcome."
+          },
+          "response": []
+        },
+        {
+          "name": "List Audit Actions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/audit-logs/actions",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "audit-logs", "actions"]
+            },
+            "description": "Get a distinct list of all audit action strings recorded for this company (useful for building filter dropdowns)."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Tax Rates",
+      "description": "Manage reusable tax rates for invoice line items.\n\n**Required roles:** company_admin, accountant (write); any role (read).",
+      "item": [
+        {
+          "name": "List Tax Rates",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/tax-rates?page=1&limit=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "tax-rates"],
+              "query": [
+                { "key": "page", "value": "1", "description": "Page number" },
+                { "key": "limit", "value": "20", "description": "Items per page (max: 100)" },
+                { "key": "search", "value": "", "description": "Search by name", "disabled": true },
+                { "key": "sort", "value": "", "description": "Sort field", "disabled": true },
+                { "key": "includeArchived", "value": "false", "description": "Include archived tax rates: true | false", "disabled": true }
+              ]
+            },
+            "description": "Paginated list of tax rates. Active rates only by default; set `includeArchived=true` to include archived."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Tax Rate",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Standard VAT\",\n  \"rate\": 17,\n  \"description\": \"Pakistan Standard Sales Tax\",\n  \"isDefault\": false\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/tax-rates",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "tax-rates"]
+            },
+            "description": "Create a new tax rate.\n\n**Required roles:** company_admin, accountant\n\n- `rate`: 0–100 (percentage)\n- `isDefault`: Set to `true` to use this rate on new invoice items by default"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Tax Rate",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Standard VAT (Updated)\",\n  \"rate\": 18,\n  \"isDefault\": true,\n  \"isArchived\": false\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/tax-rates/{{tax_rate_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "tax-rates", "{{tax_rate_id}}"]
+            },
+            "description": "Update a tax rate. Use `isArchived: true` to archive it without deletion.\n\n**Required roles:** company_admin, accountant"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Tax Rate",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/tax-rates/{{tax_rate_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "tax-rates", "{{tax_rate_id}}"]
+            },
+            "description": "Permanently delete a tax rate.\n\n**Required roles:** company_admin, accountant"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Export",
+      "description": "Export data as Excel files.\n\n**Required roles:** company_admin, accountant, hr_manager.",
+      "item": [
+        {
+          "name": "Export Invoices",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/export/invoices",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "export", "invoices"]
+            },
+            "description": "Export all invoices to an Excel (.xlsx) file."
+          },
+          "response": []
+        },
+        {
+          "name": "Export Clients",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/export/clients",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "export", "clients"]
+            },
+            "description": "Export all clients to an Excel (.xlsx) file."
+          },
+          "response": []
+        },
+        {
+          "name": "Export Employees",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/export/employees",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "export", "employees"]
+            },
+            "description": "Export all employees to an Excel (.xlsx) file."
+          },
+          "response": []
+        },
+        {
+          "name": "Export Payroll",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/export/payroll",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "export", "payroll"]
+            },
+            "description": "Export all payroll runs to an Excel (.xlsx) file."
+          },
+          "response": []
+        },
+        {
+          "name": "Export Salary Slips",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/export/salary-slips",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "export", "salary-slips"]
+            },
+            "description": "Export all salary slips to an Excel (.xlsx) file."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "AI Assistant",
+      "description": "AI-powered features for invoice drafting, item descriptions, and payroll analysis.\n\n**Rate limited.** Requires Groq API key to be configured on the server.\n\n**Required roles:** company_admin, accountant (invoice AI); company_admin, hr_manager, accountant (payroll AI).",
+      "item": [
+        {
+          "name": "AI Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/ai/status",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "ai", "status"]
+            },
+            "description": "Check if the AI service is configured and available. Returns `{ available: true/false }`. Returns 503 if the Groq API key is not set."
+          },
+          "response": []
+        },
+        {
+          "name": "AI Draft Invoice",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"prompt\": \"Create an invoice for 40 hours of backend API development at $100/hour and 10 hours of code review at $80/hour for TechCorp, due in 30 days.\",\n  \"clientId\": \"{{client_id}}\",\n  \"dueDate\": \"2025-07-21\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/ai/invoice/draft",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "ai", "invoice", "draft"]
+            },
+            "description": "Use AI to draft an invoice from a natural language prompt. Returns structured invoice data ready to be submitted to POST /invoices.\n\n**Required roles:** company_admin, accountant\n\n- `prompt`: Describe what to invoice (min 3 characters)\n- `clientId`: Optional — pre-select the client\n- `dueDate`: Optional — format YYYY-MM-DD"
+          },
+          "response": []
+        },
+        {
+          "name": "AI Describe Invoice Item",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"REST API Development\",\n  \"hours\": 40,\n  \"context\": \"Node.js backend with Express, MongoDB, and JWT authentication\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/ai/invoice/describe",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "ai", "invoice", "describe"]
+            },
+            "description": "Generate a professional invoice line item description using AI.\n\n**Required roles:** company_admin, accountant\n\n- `name`: Service or item name\n- `hours`: Optional — number of hours worked\n- `context`: Optional — additional context (max 500 chars)"
+          },
+          "response": []
+        },
+        {
+          "name": "AI Payroll Insights",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/ai/payroll/{{payroll_id}}/insights?refresh=false",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "ai", "payroll", "{{payroll_id}}", "insights"],
+              "query": [
+                { "key": "refresh", "value": "false", "description": "Force re-generation bypassing cache: true | false" }
+              ]
+            },
+            "description": "Generate AI-powered insights for a completed payroll run: anomaly detection, cost trends, optimization suggestions.\n\n**Required roles:** company_admin, hr_manager, accountant\n\nResults are cached (default TTL: 24h). Set `refresh=true` to force regeneration."
+          },
+          "response": []
+        },
+        {
+          "name": "AI Payroll Chat",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"payrollId\": \"{{payroll_id}}\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Why did the total payroll cost increase by 15% compared to last month? Which department drove the increase?\"\n    }\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/ai/payroll/chat",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "ai", "payroll", "chat"]
+            },
+            "description": "Chat with the AI about payroll data. Supports multi-turn conversations.\n\n**Required roles:** company_admin, hr_manager, accountant\n\n- `payrollId`: Optional — focus on a specific payroll run\n- `messages`: Array of `{ role: 'user'|'assistant', content }`. Max 20 messages, max 2000 chars each."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "description": "In-app notification management for the authenticated user.",
+      "item": [
+        {
+          "name": "List Notifications",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/notifications",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "notifications"]
+            },
+            "description": "Get all notifications for the authenticated user (most recent first), including unread count."
+          },
+          "response": []
+        },
+        {
+          "name": "Mark All Notifications Read",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/notifications/mark-all-read",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "notifications", "mark-all-read"]
+            },
+            "description": "Mark all unread notifications as read for the authenticated user."
+          },
+          "response": []
+        },
+        {
+          "name": "Mark Notification Read",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/notifications/{{notification_id}}/read",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "notifications", "{{notification_id}}", "read"]
+            },
+            "description": "Mark a single notification as read by ID."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

@@ -10,6 +10,7 @@ import { buildMeta, getPagination } from "../utils/pagination";
 import { hashPassword } from "../utils/password";
 import { generateToken } from "../utils/generateSlug";
 import { enqueueEmail } from "../queues/email.queue";
+import { saveBuffer } from "../lib/storage";
 
 export const listUsers = asyncHandler(async (req: Request, res: Response) => {
   const { page, limit, skip, sort } = getPagination(req.query);
@@ -109,4 +110,50 @@ export const deleteUser = asyncHandler(async (req: Request, res: Response) => {
   user.isActive = false;
   await user.save();
   return sendSuccess(res, { message: "User deactivated" });
+});
+
+function sanitizeUser(user: import("../models/user.model").IUser) {
+  return {
+    id: user._id.toString(),
+    companyId: user.companyId.toString(),
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    isActive: user.isActive,
+    avatarUrl: user.avatarUrl,
+    lastLoginAt: user.lastLoginAt,
+  };
+}
+
+export const updateMyProfile = asyncHandler(async (req: Request, res: Response) => {
+  const principal = req.user;
+  if (!principal) throw ApiError.unauthorized("Authentication required");
+
+  const user = await UserModel.findById(principal.sub);
+  if (!user) throw ApiError.notFound("User not found");
+
+  if (req.body.name) user.name = req.body.name.trim();
+  await user.save();
+
+  return sendSuccess(res, { message: "Profile updated", data: sanitizeUser(user) });
+});
+
+export const uploadMyAvatar = asyncHandler(async (req: Request, res: Response) => {
+  if (!req.file) throw ApiError.badRequest("No file uploaded");
+
+  const principal = req.user;
+  if (!principal) throw ApiError.unauthorized("Authentication required");
+
+  const user = await UserModel.findById(principal.sub);
+  if (!user) throw ApiError.notFound("User not found");
+
+  const { url } = await saveBuffer(
+    req.file.buffer,
+    `avatars/users/${user.companyId}`,
+    req.file.originalname,
+  );
+  user.avatarUrl = url;
+  await user.save();
+
+  return sendSuccess(res, { message: "Avatar uploaded", data: { avatarUrl: url } });
 });

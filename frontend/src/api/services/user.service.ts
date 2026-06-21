@@ -38,4 +38,23 @@ export const userService = {
   async remove(id: string): Promise<void> {
     await axiosClient.delete(ENDPOINTS.users.remove(id));
   },
+
+  async updateMyProfile(payload: { name: string }): Promise<User> {
+    const { data } = await axiosClient.patch<ApiEnvelope<ApiUser>>(
+      ENDPOINTS.users.me,
+      payload,
+    );
+    return mapUser(data.data);
+  },
+
+  async uploadMyAvatar(file: File): Promise<{ avatarUrl: string }> {
+    const form = new FormData();
+    form.append('avatar', file);
+    const { data } = await axiosClient.post<ApiEnvelope<{ avatarUrl: string }>>(
+      ENDPOINTS.users.myAvatar,
+      form,
+      { headers: { 'Content-Type': 'multipart/form-data' } },
+    );
+    return data.data;
+  },
 };
